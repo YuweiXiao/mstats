@@ -21,6 +21,23 @@ public enum SummaryFormatter {
         return "MEM \(usedText)/\(totalText) GB"
     }
 
+    public static func formatBattery(_ percent: Double?) -> String {
+        guard
+            let percent = normalized(percent),
+            let percentText = safeIntegerString(percent)
+        else {
+            return "BAT \(placeholder)"
+        }
+
+        return "BAT \(percentText)%"
+    }
+
+    public static func formatDisk(usedGB: Double?, totalGB: Double?) -> String {
+        let usedText = compactNumber(usedGB)
+        let totalText = compactNumber(totalGB)
+        return "DSK \(usedText)/\(totalText) GB"
+    }
+
     public static func formatNetwork(downloadMBps: Double?, uploadMBps: Double?) -> String {
         let downText = compactNumber(downloadMBps)
         let upText = compactNumber(uploadMBps)

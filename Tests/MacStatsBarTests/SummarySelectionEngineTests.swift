@@ -39,4 +39,26 @@ final class StatusBarControllerSummaryTests: XCTestCase {
 
         XCTAssertEqual(text, "NET 2.1↓ 0.4↑ MB/s | CPU 23%")
     }
+
+    func testSummaryTextFallsBackWhenNoVisibleMetricsAreSelected() {
+        let preferences = UserPreferences(
+            summaryMetricOrder: [.cpuUsage, .memoryUsage],
+            maxVisibleSummaryItems: 0
+        )
+
+        let text = StatusBarController.summaryText(snapshot: nil, preferences: preferences)
+
+        XCTAssertEqual(text, "--")
+    }
+
+    func testSummaryTextUsesPlaceholderForMissingSnapshotMetric() {
+        let preferences = UserPreferences(
+            summaryMetricOrder: [.cpuUsage],
+            maxVisibleSummaryItems: 1
+        )
+
+        let text = StatusBarController.summaryText(snapshot: nil, preferences: preferences)
+
+        XCTAssertEqual(text, "CPU --")
+    }
 }

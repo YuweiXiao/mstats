@@ -51,6 +51,22 @@ final class SummaryFormatterTests: XCTestCase {
         )
     }
 
+    func testFormatBatteryUsesBatteryLabelAndPlaceholder() {
+        XCTAssertEqual(SummaryFormatter.formatBattery(87.2), "BAT 87%")
+        XCTAssertEqual(SummaryFormatter.formatBattery(nil), "BAT --")
+    }
+
+    func testFormatDiskUsesDiskLabelAndPlaceholder() {
+        XCTAssertEqual(
+            SummaryFormatter.formatDisk(usedGB: 256.1, totalGB: 512),
+            "DSK 256.1/512 GB"
+        )
+        XCTAssertEqual(
+            SummaryFormatter.formatDisk(usedGB: nil, totalGB: nil),
+            "DSK --/-- GB"
+        )
+    }
+
     func testDecimalFormattingUsesDotSeparatorDeterministically() {
         XCTAssertEqual(
             SummaryFormatter.formatMemory(usedGB: 1.2, totalGB: 3.4),

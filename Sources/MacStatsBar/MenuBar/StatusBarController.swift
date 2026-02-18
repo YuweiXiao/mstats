@@ -55,14 +55,12 @@ public final class StatusBarController {
                 uploadMBps: metric?.secondaryValue
             )
         case .batteryStatus:
-            let formatted = SummaryFormatter.formatCPU(metric?.primaryValue)
-            return formatted.replacingOccurrences(of: "CPU", with: "BAT")
+            return SummaryFormatter.formatBattery(metric?.primaryValue)
         case .diskUsage:
-            let formatted = SummaryFormatter.formatMemory(
+            return SummaryFormatter.formatDisk(
                 usedGB: metric?.primaryValue,
                 totalGB: metric?.secondaryValue
             )
-            return formatted.replacingOccurrences(of: "MEM", with: "DSK")
         }
     }
 }
