@@ -2,13 +2,19 @@ import Foundation
 
 public enum SummaryFormatter {
     private static let placeholder = "--"
+    private static let fixedLocale = Locale(identifier: "en_US_POSIX")
+    private static let minIntAsDouble = Double(Int.min)
+    private static let maxIntAsDouble = Double(Int.max)
 
     public static func formatCPU(_ percent: Double?) -> String {
-        guard let percent = normalized(percent) else {
+        guard
+            let percent = normalized(percent),
+            let percentText = safeIntegerString(percent.rounded())
+        else {
             return "CPU \(placeholder)"
         }
 
-        return "CPU \(Int(percent.rounded()))%"
+        return "CPU \(percentText)%"
     }
 
     public static func formatMemory(usedGB: Double?, totalGB: Double?) -> String {
@@ -29,11 +35,19 @@ public enum SummaryFormatter {
         }
 
         let roundedToTenths = (value * 10).rounded() / 10
-        if roundedToTenths == roundedToTenths.rounded() {
-            return String(Int(roundedToTenths))
+        guard roundedToTenths.isFinite else {
+            return placeholder
         }
 
-        return String(format: "%.1f", roundedToTenths)
+        if roundedToTenths == roundedToTenths.rounded() {
+            guard let integerText = safeIntegerString(roundedToTenths.rounded()) else {
+                return placeholder
+            }
+
+            return integerText
+        }
+
+        return String(format: "%.1f", locale: fixedLocale, roundedToTenths)
     }
 
     private static func normalized(_ value: Double?) -> Double? {
@@ -42,5 +56,13 @@ public enum SummaryFormatter {
         }
 
         return value
+    }
+
+    private static func safeIntegerString(_ value: Double) -> String? {
+        guard value >= minIntAsDouble, value <= maxIntAsDouble else {
+            return nil
+        }
+
+        return String(Int(value))
     }
 }

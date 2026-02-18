@@ -51,6 +51,31 @@ final class SummaryFormatterTests: XCTestCase {
         )
     }
 
+    func testDecimalFormattingUsesDotSeparatorDeterministically() {
+        XCTAssertEqual(
+            SummaryFormatter.formatMemory(usedGB: 1.2, totalGB: 3.4),
+            "MEM 1.2/3.4 GB"
+        )
+        XCTAssertEqual(
+            SummaryFormatter.formatNetwork(downloadMBps: 12.34, uploadMBps: 0.56),
+            "NET 12.3↓ 0.6↑ MB/s"
+        )
+    }
+
+    func testOutOfRangeFiniteValuesReturnPlaceholderInsteadOfCrashing() {
+        let huge = Double(Int.max) * 2
+
+        XCTAssertEqual(SummaryFormatter.formatCPU(huge), "CPU --")
+        XCTAssertEqual(
+            SummaryFormatter.formatMemory(usedGB: huge, totalGB: 16),
+            "MEM --/16 GB"
+        )
+        XCTAssertEqual(
+            SummaryFormatter.formatNetwork(downloadMBps: huge, uploadMBps: 1),
+            "NET --↓ 1↑ MB/s"
+        )
+    }
+
     func testNonFiniteValuesAreTreatedAsUnavailable() {
         XCTAssertEqual(SummaryFormatter.formatCPU(.nan), "CPU --")
         XCTAssertEqual(
