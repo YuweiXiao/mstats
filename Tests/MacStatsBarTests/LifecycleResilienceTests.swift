@@ -32,6 +32,41 @@ final class LifecycleResilienceTests: XCTestCase {
 
         XCTAssertFalse(store.isPolling)
     }
+
+    @MainActor
+    func testExplicitStopDuringSleepPreventsWakeAutoResume() {
+        let collector = LifecycleNoopCollector()
+        let store = StatsStore(collector: collector, refreshInterval: 60)
+
+        store.startPolling()
+        XCTAssertTrue(store.isPolling)
+
+        store.handleWillSleep()
+        XCTAssertFalse(store.isPolling)
+
+        store.stopPolling()
+        store.handleDidWake()
+
+        XCTAssertFalse(store.isPolling)
+    }
+
+    @MainActor
+    func testWakeResumeIntentIsConsumedAfterFirstWake() {
+        let collector = LifecycleNoopCollector()
+        let store = StatsStore(collector: collector, refreshInterval: 60)
+
+        store.startPolling()
+        store.handleWillSleep()
+        XCTAssertFalse(store.isPolling)
+
+        store.handleDidWake()
+        XCTAssertTrue(store.isPolling)
+
+        store.stopPolling()
+        store.handleDidWake()
+
+        XCTAssertFalse(store.isPolling)
+    }
 }
 
 private actor LifecycleNoopCollector: StatsCollecting {

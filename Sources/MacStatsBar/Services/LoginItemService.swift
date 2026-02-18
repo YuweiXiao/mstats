@@ -23,6 +23,10 @@ public final class LoginItemService: LoginItemServicing {
     }
 
     public func setEnabled(_ enabled: Bool) throws {
+        guard backend.isEnabled != enabled else {
+            return
+        }
+
         if enabled {
             try backend.register()
         } else {

@@ -64,7 +64,18 @@ public final class StatsStore: ObservableObject {
     }
 
     public func stopPolling() {
+        stopPolling(clearWakeResumeIntent: true)
+    }
+
+    private func stopPollingForSleepTransition() {
+        stopPolling(clearWakeResumeIntent: false)
+    }
+
+    private func stopPolling(clearWakeResumeIntent: Bool) {
         isPolling = false
+        if clearWakeResumeIntent {
+            shouldResumePollingAfterWake = false
+        }
         pollingSessionID = UUID()
         pollingTask?.cancel()
         pollingTask = nil
@@ -72,7 +83,7 @@ public final class StatsStore: ObservableObject {
 
     public func handleWillSleep() {
         shouldResumePollingAfterWake = isPolling
-        stopPolling()
+        stopPollingForSleepTransition()
     }
 
     public func handleDidWake() {

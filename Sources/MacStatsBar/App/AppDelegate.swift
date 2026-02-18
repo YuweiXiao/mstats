@@ -49,13 +49,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func registerLifecycleObservers(for statsStore: StatsStore) {
         let notificationCenter = NSWorkspace.shared.notificationCenter
+        removeLifecycleObservers()
 
         let willSleepObserver = notificationCenter.addObserver(
             forName: NSWorkspace.willSleepNotification,
             object: nil,
             queue: .main
         ) { [weak statsStore] _ in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 statsStore?.handleWillSleep()
             }
         }
@@ -65,11 +66,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { [weak statsStore] _ in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 statsStore?.handleDidWake()
             }
         }
 
         workspaceNotificationObservers = [willSleepObserver, didWakeObserver]
+    }
+
+    private func removeLifecycleObservers() {
+        let notificationCenter = NSWorkspace.shared.notificationCenter
+        workspaceNotificationObservers.forEach { notificationCenter.removeObserver($0) }
+        workspaceNotificationObservers.removeAll()
     }
 }
