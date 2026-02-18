@@ -76,6 +76,16 @@ final class SummaryFormatterTests: XCTestCase {
         )
     }
 
+    func testIntMaxBoundaryDoubleReturnsPlaceholderInsteadOfTrapping() {
+        let boundary = Double(Int.max)
+
+        XCTAssertEqual(SummaryFormatter.formatCPU(boundary), "CPU --")
+        XCTAssertEqual(
+            SummaryFormatter.formatMemory(usedGB: boundary, totalGB: 16),
+            "MEM --/16 GB"
+        )
+    }
+
     func testNonFiniteValuesAreTreatedAsUnavailable() {
         XCTAssertEqual(SummaryFormatter.formatCPU(.nan), "CPU --")
         XCTAssertEqual(

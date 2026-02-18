@@ -3,13 +3,11 @@ import Foundation
 public enum SummaryFormatter {
     private static let placeholder = "--"
     private static let fixedLocale = Locale(identifier: "en_US_POSIX")
-    private static let minIntAsDouble = Double(Int.min)
-    private static let maxIntAsDouble = Double(Int.max)
 
     public static func formatCPU(_ percent: Double?) -> String {
         guard
             let percent = normalized(percent),
-            let percentText = safeIntegerString(percent.rounded())
+            let percentText = safeIntegerString(percent)
         else {
             return "CPU \(placeholder)"
         }
@@ -40,7 +38,7 @@ public enum SummaryFormatter {
         }
 
         if roundedToTenths == roundedToTenths.rounded() {
-            guard let integerText = safeIntegerString(roundedToTenths.rounded()) else {
+            guard let integerText = safeIntegerString(roundedToTenths) else {
                 return placeholder
             }
 
@@ -59,10 +57,15 @@ public enum SummaryFormatter {
     }
 
     private static func safeIntegerString(_ value: Double) -> String? {
-        guard value >= minIntAsDouble, value <= maxIntAsDouble else {
+        let roundedIntegral = value.rounded()
+        guard roundedIntegral.isFinite else {
             return nil
         }
 
-        return String(Int(value))
+        guard let integerValue = Int(exactly: roundedIntegral) else {
+            return nil
+        }
+
+        return String(integerValue)
     }
 }
