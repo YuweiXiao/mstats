@@ -111,12 +111,22 @@ public final class StatsStore: ObservableObject {
             let previousSample = rawNetworkBaseline,
             previousSample.unit == incomingSample.unit
         else {
-            return incoming
+            return replacingNetworkMetric(
+                in: incoming,
+                download: 0,
+                upload: 0,
+                unit: incomingSample.unit
+            )
         }
 
         let elapsedSeconds = incomingSample.timestamp.timeIntervalSince(previousSample.timestamp)
         guard elapsedSeconds.isFinite, elapsedSeconds > 0 else {
-            return incoming
+            return replacingNetworkMetric(
+                in: incoming,
+                download: 0,
+                upload: 0,
+                unit: incomingSample.unit
+            )
         }
 
         let downloadDelta = incomingSample.downloadCounter - previousSample.downloadCounter
@@ -127,22 +137,31 @@ public final class StatsStore: ObservableObject {
             downloadDelta >= 0,
             uploadDelta >= 0
         else {
-            return incoming
+            return replacingNetworkMetric(
+                in: incoming,
+                download: 0,
+                upload: 0,
+                unit: incomingSample.unit
+            )
         }
 
         let downloadRate = downloadDelta / elapsedSeconds
         let uploadRate = uploadDelta / elapsedSeconds
         guard downloadRate.isFinite, uploadRate.isFinite else {
-            return incoming
+            return replacingNetworkMetric(
+                in: incoming,
+                download: 0,
+                upload: 0,
+                unit: incomingSample.unit
+            )
         }
 
-        var metrics = incoming.metrics
-        metrics[.networkThroughput] = MetricValue(
-            primaryValue: downloadRate,
-            secondaryValue: uploadRate,
+        return replacingNetworkMetric(
+            in: incoming,
+            download: downloadRate,
+            upload: uploadRate,
             unit: incomingSample.unit
         )
-        return StatsSnapshot(timestamp: incoming.timestamp, metrics: metrics)
     }
 
     private func rawNetworkSample(from snapshot: StatsSnapshot) -> RawNetworkSample? {
@@ -163,6 +182,21 @@ public final class StatsStore: ObservableObject {
             uploadCounter: uploadCounter,
             unit: networkMetric.unit
         )
+    }
+
+    private func replacingNetworkMetric(
+        in snapshot: StatsSnapshot,
+        download: Double,
+        upload: Double,
+        unit: MetricValue.Unit
+    ) -> StatsSnapshot {
+        var metrics = snapshot.metrics
+        metrics[.networkThroughput] = MetricValue(
+            primaryValue: download,
+            secondaryValue: upload,
+            unit: unit
+        )
+        return StatsSnapshot(timestamp: snapshot.timestamp, metrics: metrics)
     }
 }
 

@@ -131,6 +131,56 @@ final class StatsStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshOnceFirstCounterSamplePublishesZeroThroughputPlaceholder() async {
+        let first = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_000),
+            downloadCounter: 10_000,
+            uploadCounter: 5_000
+        )
+        let collector = SequencedStatsCollector(outputs: [.snapshot(first)])
+        let store = StatsStore(collector: collector, refreshInterval: 5)
+
+        await store.refreshOnce()
+
+        let networkMetric = store.currentSnapshot?.metrics[.networkThroughput]
+        XCTAssertNotNil(networkMetric)
+        XCTAssertEqual(networkMetric?.primaryValue ?? .nan, 0, accuracy: 0.0001)
+        XCTAssertEqual(networkMetric?.secondaryValue ?? .nan, 0, accuracy: 0.0001)
+        XCTAssertEqual(networkMetric?.unit, .megabytesPerSecond)
+    }
+
+    @MainActor
+    func testRefreshOnceCounterRollbackPublishesZeroThroughputPlaceholder() async {
+        let first = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_000),
+            downloadCounter: 100,
+            uploadCounter: 40
+        )
+        let second = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_002),
+            downloadCounter: 106,
+            uploadCounter: 44
+        )
+        let rollback = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_004),
+            downloadCounter: 10,
+            uploadCounter: 3
+        )
+        let collector = SequencedStatsCollector(outputs: [.snapshot(first), .snapshot(second), .snapshot(rollback)])
+        let store = StatsStore(collector: collector, refreshInterval: 5)
+
+        await store.refreshOnce()
+        await store.refreshOnce()
+        await store.refreshOnce()
+
+        let networkMetric = store.currentSnapshot?.metrics[.networkThroughput]
+        XCTAssertNotNil(networkMetric)
+        XCTAssertEqual(networkMetric?.primaryValue ?? .nan, 0, accuracy: 0.0001)
+        XCTAssertEqual(networkMetric?.secondaryValue ?? .nan, 0, accuracy: 0.0001)
+        XCTAssertEqual(networkMetric?.unit, .megabytesPerSecond)
+    }
+
+    @MainActor
     func testStartAndStopPollingToggleIsPolling() {
         let collector = SequencedStatsCollector(outputs: [.snapshot(makeSnapshot(cpu: 5))])
         let store = StatsStore(collector: collector, refreshInterval: 60)
