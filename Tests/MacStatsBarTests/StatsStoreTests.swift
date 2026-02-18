@@ -36,6 +36,43 @@ final class StatsStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshOnceOnCollectorErrorWithNoExistingSnapshotKeepsNil() async {
+        let collector = SequencedStatsCollector(outputs: [.failure(TestCollectorError.expected)])
+        let store = StatsStore(collector: collector, refreshInterval: 5)
+
+        await store.refreshOnce()
+
+        XCTAssertNil(store.currentSnapshot)
+    }
+
+    @MainActor
+    func testRefreshOnceDerivesNetworkThroughputFromConsecutiveSnapshots() async {
+        let first = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_000),
+            downloadCounter: 100,
+            uploadCounter: 40
+        )
+        let second = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_002),
+            downloadCounter: 106,
+            uploadCounter: 44
+        )
+
+        let collector = SequencedStatsCollector(outputs: [.snapshot(first), .snapshot(second)])
+        let store = StatsStore(collector: collector, refreshInterval: 5)
+
+        await store.refreshOnce()
+        await store.refreshOnce()
+
+        let networkMetric = store.currentSnapshot?.metrics[.networkThroughput]
+        XCTAssertNotNil(networkMetric)
+        XCTAssertNotNil(networkMetric?.secondaryValue)
+        XCTAssertEqual(networkMetric?.primaryValue ?? .nan, 3, accuracy: 0.0001)
+        XCTAssertEqual(networkMetric?.secondaryValue ?? .nan, 2, accuracy: 0.0001)
+        XCTAssertEqual(networkMetric?.unit, .megabytesPerSecond)
+    }
+
+    @MainActor
     func testStartAndStopPollingToggleIsPolling() {
         let collector = SequencedStatsCollector(outputs: [.snapshot(makeSnapshot(cpu: 5))])
         let store = StatsStore(collector: collector, refreshInterval: 60)
@@ -127,6 +164,23 @@ final class StatsStoreTests: XCTestCase {
             timestamp: Date(timeIntervalSince1970: 1_706_000_000),
             metrics: [
                 .cpuUsage: MetricValue(primaryValue: cpu, secondaryValue: nil, unit: .percent)
+            ]
+        )
+    }
+
+    private func makeNetworkCounterSnapshot(
+        timestamp: Date,
+        downloadCounter: Double,
+        uploadCounter: Double
+    ) -> StatsSnapshot {
+        StatsSnapshot(
+            timestamp: timestamp,
+            metrics: [
+                .networkThroughput: MetricValue(
+                    primaryValue: downloadCounter,
+                    secondaryValue: uploadCounter,
+                    unit: .megabytesPerSecond
+                )
             ]
         )
     }
