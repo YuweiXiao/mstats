@@ -73,6 +73,39 @@ final class StatsStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshOnceDerivesStableNetworkRateAcrossThreeCounterSamples() async {
+        let first = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_000),
+            downloadCounter: 100,
+            uploadCounter: 40
+        )
+        let second = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_002),
+            downloadCounter: 106,
+            uploadCounter: 44
+        )
+        let third = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_004),
+            downloadCounter: 112,
+            uploadCounter: 48
+        )
+
+        let collector = SequencedStatsCollector(outputs: [.snapshot(first), .snapshot(second), .snapshot(third)])
+        let store = StatsStore(collector: collector, refreshInterval: 5)
+
+        await store.refreshOnce()
+        await store.refreshOnce()
+        let secondNetwork = store.currentSnapshot?.metrics[.networkThroughput]
+        await store.refreshOnce()
+        let thirdNetwork = store.currentSnapshot?.metrics[.networkThroughput]
+
+        XCTAssertEqual(secondNetwork?.primaryValue ?? .nan, 3, accuracy: 0.0001)
+        XCTAssertEqual(secondNetwork?.secondaryValue ?? .nan, 2, accuracy: 0.0001)
+        XCTAssertEqual(thirdNetwork?.primaryValue ?? .nan, 3, accuracy: 0.0001)
+        XCTAssertEqual(thirdNetwork?.secondaryValue ?? .nan, 2, accuracy: 0.0001)
+    }
+
+    @MainActor
     func testStartAndStopPollingToggleIsPolling() {
         let collector = SequencedStatsCollector(outputs: [.snapshot(makeSnapshot(cpu: 5))])
         let store = StatsStore(collector: collector, refreshInterval: 60)

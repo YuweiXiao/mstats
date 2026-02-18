@@ -13,6 +13,7 @@ public final class StatsStore: ObservableObject {
     private var pollingTask: Task<Void, Never>?
     private var pollingSessionID = UUID()
     private var isRefreshing = false
+    private var rawNetworkBaseline: RawNetworkSample?
 
     public init(
         collector: any StatsCollecting,
@@ -38,10 +39,10 @@ public final class StatsStore: ObservableObject {
 
         do {
             let snapshot = try await collector.collect()
-            let snapshotWithDerivedNetwork = snapshotByDerivingNetworkThroughput(from: snapshot)
             guard shouldPublish() else {
                 return
             }
+            let snapshotWithDerivedNetwork = snapshotByDerivingNetworkThroughput(from: snapshot)
             currentSnapshot = snapshotWithDerivedNetwork
         } catch {
             // Keep currentSnapshot unchanged when collection fails.
@@ -97,29 +98,29 @@ public final class StatsStore: ObservableObject {
     }
 
     private func snapshotByDerivingNetworkThroughput(from incoming: StatsSnapshot) -> StatsSnapshot {
+        guard let incomingSample = rawNetworkSample(from: incoming) else {
+            rawNetworkBaseline = nil
+            return incoming
+        }
+
+        defer {
+            rawNetworkBaseline = incomingSample
+        }
+
         guard
-            let previous = currentSnapshot,
-            let previousNetwork = previous.metrics[.networkThroughput],
-            let incomingNetwork = incoming.metrics[.networkThroughput],
-            previousNetwork.unit == incomingNetwork.unit
+            let previousSample = rawNetworkBaseline,
+            previousSample.unit == incomingSample.unit
         else {
             return incoming
         }
 
-        let elapsedSeconds = incoming.timestamp.timeIntervalSince(previous.timestamp)
+        let elapsedSeconds = incomingSample.timestamp.timeIntervalSince(previousSample.timestamp)
         guard elapsedSeconds.isFinite, elapsedSeconds > 0 else {
             return incoming
         }
 
-        guard
-            let previousUpload = previousNetwork.secondaryValue,
-            let incomingUpload = incomingNetwork.secondaryValue
-        else {
-            return incoming
-        }
-
-        let downloadDelta = incomingNetwork.primaryValue - previousNetwork.primaryValue
-        let uploadDelta = incomingUpload - previousUpload
+        let downloadDelta = incomingSample.downloadCounter - previousSample.downloadCounter
+        let uploadDelta = incomingSample.uploadCounter - previousSample.uploadCounter
         guard
             downloadDelta.isFinite,
             uploadDelta.isFinite,
@@ -139,8 +140,35 @@ public final class StatsStore: ObservableObject {
         metrics[.networkThroughput] = MetricValue(
             primaryValue: downloadRate,
             secondaryValue: uploadRate,
-            unit: incomingNetwork.unit
+            unit: incomingSample.unit
         )
         return StatsSnapshot(timestamp: incoming.timestamp, metrics: metrics)
     }
+
+    private func rawNetworkSample(from snapshot: StatsSnapshot) -> RawNetworkSample? {
+        guard
+            let networkMetric = snapshot.metrics[.networkThroughput],
+            let uploadCounter = networkMetric.secondaryValue,
+            networkMetric.primaryValue.isFinite,
+            uploadCounter.isFinite,
+            networkMetric.primaryValue >= 0,
+            uploadCounter >= 0
+        else {
+            return nil
+        }
+
+        return RawNetworkSample(
+            timestamp: snapshot.timestamp,
+            downloadCounter: networkMetric.primaryValue,
+            uploadCounter: uploadCounter,
+            unit: networkMetric.unit
+        )
+    }
+}
+
+private struct RawNetworkSample {
+    let timestamp: Date
+    let downloadCounter: Double
+    let uploadCounter: Double
+    let unit: MetricValue.Unit
 }
