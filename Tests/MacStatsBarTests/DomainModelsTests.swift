@@ -25,6 +25,24 @@ final class DomainModelsTests: XCTestCase {
         XCTAssertEqual(output, input)
     }
 
+    func testVisibleSummaryMetricsCapsToMaxVisibleSummaryItems() {
+        let preferences = UserPreferences(
+            summaryMetricOrder: [.cpuUsage, .memoryUsage, .networkThroughput],
+            maxVisibleSummaryItems: 2
+        )
+
+        XCTAssertEqual(preferences.visibleSummaryMetrics, [.cpuUsage, .memoryUsage])
+    }
+
+    func testVisibleSummaryMetricsReturnsAllWhenCapIsAtLeastCount() {
+        let preferences = UserPreferences(
+            summaryMetricOrder: [.cpuUsage, .memoryUsage],
+            maxVisibleSummaryItems: 4
+        )
+
+        XCTAssertEqual(preferences.visibleSummaryMetrics, [.cpuUsage, .memoryUsage])
+    }
+
     func testMetricValueCodableRoundTrip() throws {
         let input = MetricValue(
             kind: .networkThroughput,
