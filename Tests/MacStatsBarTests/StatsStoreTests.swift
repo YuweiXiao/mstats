@@ -106,6 +106,31 @@ final class StatsStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshOnceDerivesNetworkRateFromCounterDeltaNotRawCounterValue() async {
+        let first = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_000),
+            downloadCounter: 10_000,
+            uploadCounter: 5_000
+        )
+        let second = makeNetworkCounterSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_005),
+            downloadCounter: 10_010,
+            uploadCounter: 5_015
+        )
+
+        let collector = SequencedStatsCollector(outputs: [.snapshot(first), .snapshot(second)])
+        let store = StatsStore(collector: collector, refreshInterval: 5)
+
+        await store.refreshOnce()
+        await store.refreshOnce()
+
+        let networkMetric = store.currentSnapshot?.metrics[.networkThroughput]
+        XCTAssertNotNil(networkMetric)
+        XCTAssertEqual(networkMetric?.primaryValue ?? .nan, 2, accuracy: 0.0001)
+        XCTAssertEqual(networkMetric?.secondaryValue ?? .nan, 3, accuracy: 0.0001)
+    }
+
+    @MainActor
     func testStartAndStopPollingToggleIsPolling() {
         let collector = SequencedStatsCollector(outputs: [.snapshot(makeSnapshot(cpu: 5))])
         let store = StatsStore(collector: collector, refreshInterval: 60)

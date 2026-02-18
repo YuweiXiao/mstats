@@ -34,6 +34,59 @@ final class SystemCollectorMappingTests: XCTestCase {
 
         XCTAssertEqual(snapshot.metrics, [:])
     }
+
+    func testCPUCollectorComputesUsageFromTickDeltasAndSkipsFirstSample() {
+        var samples: [(user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)] = [
+            (100, 50, 850, 0),
+            (130, 70, 900, 0)
+        ]
+        let collector = CPUCollector(sampleTicks: {
+            guard !samples.isEmpty else { return nil }
+            return samples.removeFirst()
+        })
+
+        XCTAssertNil(collector.collectCPUUsage())
+        let secondMetric = collector.collectCPUUsage()
+
+        XCTAssertNotNil(secondMetric)
+        XCTAssertEqual(secondMetric?.unit, .percent)
+        XCTAssertEqual(secondMetric?.primaryValue ?? .nan, 50, accuracy: 0.0001)
+    }
+
+    func testCPUCollectorReturnsNilWhenTickDeltaIsInvalid() {
+        var samples: [(user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)] = [
+            (200, 100, 700, 0),
+            (190, 95, 710, 0)
+        ]
+        let collector = CPUCollector(sampleTicks: {
+            guard !samples.isEmpty else { return nil }
+            return samples.removeFirst()
+        })
+
+        XCTAssertNil(collector.collectCPUUsage())
+        XCTAssertNil(collector.collectCPUUsage())
+    }
+
+    func testDiskCollectorClampsAvailableCapacityIntoBoundsBeforeDerivingUsed() {
+        let gibibyte = Int64(1_073_741_824)
+
+        let negativeAvailableCollector = DiskCollector(
+            volumeURL: URL(fileURLWithPath: "/"),
+            capacityProvider: { _ in (totalCapacity: gibibyte, availableCapacity: -512) }
+        )
+        let overflowAvailableCollector = DiskCollector(
+            volumeURL: URL(fileURLWithPath: "/"),
+            capacityProvider: { _ in (totalCapacity: gibibyte, availableCapacity: gibibyte * 2) }
+        )
+
+        let usedWithNegativeAvailable = negativeAvailableCollector.collectDiskUsage()
+        let usedWithOverflowAvailable = overflowAvailableCollector.collectDiskUsage()
+
+        XCTAssertEqual(usedWithNegativeAvailable?.primaryValue ?? .nan, 1, accuracy: 0.0001)
+        XCTAssertEqual(usedWithNegativeAvailable?.secondaryValue ?? .nan, 1, accuracy: 0.0001)
+        XCTAssertEqual(usedWithOverflowAvailable?.primaryValue ?? .nan, 0, accuracy: 0.0001)
+        XCTAssertEqual(usedWithOverflowAvailable?.secondaryValue ?? .nan, 1, accuracy: 0.0001)
+    }
 }
 
 private struct FailingCPUCollector: CPUCollecting {

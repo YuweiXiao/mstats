@@ -7,49 +7,23 @@ public protocol NetworkCollecting {
 
 public final class NetworkCollector: NetworkCollecting {
     private struct TotalsSnapshot {
-        let timestamp: TimeInterval
         let receivedBytes: UInt64
         let sentBytes: UInt64
     }
-
-    private let lock = NSLock()
-    private var previousSnapshot: TotalsSnapshot?
 
     public init() {}
 
     public func collectNetworkThroughput() -> MetricValue? {
         guard let currentSnapshot = readTotalsSnapshot() else { return nil }
-
-        lock.lock()
-        defer { lock.unlock() }
-        defer { previousSnapshot = currentSnapshot }
-
-        guard let previousSnapshot else {
-            return MetricValue(primaryValue: 0, secondaryValue: 0, unit: .megabytesPerSecond)
-        }
-
-        let elapsedSeconds = currentSnapshot.timestamp - previousSnapshot.timestamp
-        guard elapsedSeconds > 0 else {
-            return MetricValue(primaryValue: 0, secondaryValue: 0, unit: .megabytesPerSecond)
-        }
-
-        let downloadedBytes = currentSnapshot.receivedBytes >= previousSnapshot.receivedBytes
-            ? currentSnapshot.receivedBytes - previousSnapshot.receivedBytes
-            : 0
-        let uploadedBytes = currentSnapshot.sentBytes >= previousSnapshot.sentBytes
-            ? currentSnapshot.sentBytes - previousSnapshot.sentBytes
-            : 0
-
         return MetricValue(
-            primaryValue: bytesToMegabytesPerSecond(downloadedBytes, over: elapsedSeconds),
-            secondaryValue: bytesToMegabytesPerSecond(uploadedBytes, over: elapsedSeconds),
+            primaryValue: bytesToMegabytes(currentSnapshot.receivedBytes),
+            secondaryValue: bytesToMegabytes(currentSnapshot.sentBytes),
             unit: .megabytesPerSecond
         )
     }
 
-    private func bytesToMegabytesPerSecond(_ bytes: UInt64, over seconds: TimeInterval) -> Double {
-        guard seconds > 0 else { return 0 }
-        return Double(bytes) / 1_048_576 / seconds
+    private func bytesToMegabytes(_ bytes: UInt64) -> Double {
+        Double(bytes) / 1_048_576
     }
 
     private func readTotalsSnapshot() -> TotalsSnapshot? {
@@ -75,10 +49,6 @@ public final class NetworkCollector: NetworkCollecting {
             sentBytes &+= UInt64(data.ifi_obytes)
         }
 
-        return TotalsSnapshot(
-            timestamp: Date().timeIntervalSince1970,
-            receivedBytes: receivedBytes,
-            sentBytes: sentBytes
-        )
+        return TotalsSnapshot(receivedBytes: receivedBytes, sentBytes: sentBytes)
     }
 }
