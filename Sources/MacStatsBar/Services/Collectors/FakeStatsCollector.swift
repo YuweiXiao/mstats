@@ -1,17 +1,25 @@
 public struct FakeStatsCollector: StatsCollecting {
-    private let snapshot: StatsSnapshot
-    private let error: (any Error)?
+    private enum Output {
+        case snapshot(StatsSnapshot)
+        case error(any Error)
+    }
 
-    public init(snapshot: StatsSnapshot, error: (any Error)? = nil) {
-        self.snapshot = snapshot
-        self.error = error
+    private let output: Output
+
+    public init(snapshot: StatsSnapshot) {
+        output = .snapshot(snapshot)
+    }
+
+    public init(error: any Error) {
+        output = .error(error)
     }
 
     public func collect() async throws -> StatsSnapshot {
-        if let error {
+        switch output {
+        case let .snapshot(snapshot):
+            return snapshot
+        case let .error(error):
             throw error
         }
-
-        return snapshot
     }
 }

@@ -8,9 +8,9 @@ final class StatsCollectorProtocolTests: XCTestCase {
             timestamp: Date(timeIntervalSince1970: 1_706_000_000),
             metrics: [.cpuUsage: MetricValue(primaryValue: 42, secondaryValue: nil, unit: .percent)]
         )
-        let collector = FakeStatsCollector(snapshot: snapshot)
+        let collector: any StatsCollecting = FakeStatsCollector(snapshot: snapshot)
 
-        let collected = try await collector.collect()
+        let collected = try await collect(using: collector)
 
         XCTAssertEqual(collected, snapshot)
     }
@@ -20,16 +20,19 @@ final class StatsCollectorProtocolTests: XCTestCase {
             case expected
         }
 
-        let snapshot = StatsSnapshot(timestamp: Date(), metrics: [:])
-        let collector = FakeStatsCollector(snapshot: snapshot, error: SampleError.expected)
+        let collector: any StatsCollecting = FakeStatsCollector(error: SampleError.expected)
 
         do {
-            _ = try await collector.collect()
+            _ = try await collect(using: collector)
             XCTFail("Expected collect() to throw")
         } catch let error as SampleError {
             XCTAssertEqual(error, .expected)
         } catch {
             XCTFail("Unexpected error type: \(error)")
         }
+    }
+
+    private func collect(using collector: any StatsCollecting) async throws -> StatsSnapshot {
+        try await collector.collect()
     }
 }
