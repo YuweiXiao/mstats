@@ -2,14 +2,14 @@ import SwiftUI
 
 public struct PopoverRootView: View {
     private let viewModel: PopoverViewModel
-    @State private var settings: SettingsState
+    @Binding private var settings: SettingsState
 
     public init(
         snapshot: StatsSnapshot?,
-        initialSettings: SettingsState = .defaultValue
+        settings: Binding<SettingsState>
     ) {
         viewModel = PopoverViewModel(snapshot: snapshot)
-        _settings = State(initialValue: initialSettings)
+        _settings = settings
     }
 
     public var body: some View {

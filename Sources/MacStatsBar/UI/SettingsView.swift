@@ -46,6 +46,23 @@ public struct SettingsState: Equatable {
         self.launchAtLoginEnabled = launchAtLoginEnabled
         self.popoverPinBehavior = popoverPinBehavior
     }
+
+    public mutating func updateSummaryMetric(at index: Int, to newValue: MetricKind) {
+        guard summaryMetricOrder.indices.contains(index) else {
+            return
+        }
+
+        if summaryMetricOrder[index] == newValue {
+            return
+        }
+
+        if let duplicateIndex = summaryMetricOrder.firstIndex(of: newValue), duplicateIndex != index {
+            summaryMetricOrder.swapAt(index, duplicateIndex)
+            return
+        }
+
+        summaryMetricOrder[index] = newValue
+    }
 }
 
 public struct SettingsView: View {
@@ -102,7 +119,7 @@ public struct SettingsView: View {
                     return
                 }
 
-                settings.summaryMetricOrder[index] = newValue
+                settings.updateSummaryMetric(at: index, to: newValue)
             }
         )
     }
