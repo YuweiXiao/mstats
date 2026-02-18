@@ -43,9 +43,38 @@ final class DomainModelsTests: XCTestCase {
         XCTAssertEqual(preferences.visibleSummaryMetrics, [.cpuUsage, .memoryUsage])
     }
 
+    func testUserPreferencesInitializerClampsNegativeMaxVisibleSummaryItemsToZero() {
+        let preferences = UserPreferences(
+            summaryMetricOrder: [.cpuUsage, .memoryUsage],
+            maxVisibleSummaryItems: -1
+        )
+
+        XCTAssertEqual(preferences.maxVisibleSummaryItems, 0)
+    }
+
+    func testUserPreferencesDecodingClampsNegativeMaxVisibleSummaryItemsToZero() throws {
+        let json = """
+        {
+          "summaryMetricOrder": ["cpuUsage", "memoryUsage"],
+          "maxVisibleSummaryItems": -5
+        }
+        """
+
+        let decoded = try JSONDecoder().decode(UserPreferences.self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.maxVisibleSummaryItems, 0)
+    }
+
+    func testVisibleSummaryMetricsIsEmptyWhenCapIsZero() {
+        let preferences = UserPreferences(
+            summaryMetricOrder: [.cpuUsage, .memoryUsage],
+            maxVisibleSummaryItems: 0
+        )
+
+        XCTAssertEqual(preferences.visibleSummaryMetrics, [])
+    }
+
     func testMetricValueCodableRoundTrip() throws {
         let input = MetricValue(
-            kind: .networkThroughput,
             primaryValue: 2.4,
             secondaryValue: 0.7,
             unit: .megabytesPerSecond
@@ -60,8 +89,8 @@ final class DomainModelsTests: XCTestCase {
         let input = StatsSnapshot(
             timestamp: timestamp,
             metrics: [
-                .cpuUsage: MetricValue(kind: .cpuUsage, primaryValue: 23, secondaryValue: nil, unit: .percent),
-                .memoryUsage: MetricValue(kind: .memoryUsage, primaryValue: 14.2, secondaryValue: 32, unit: .gigabytes)
+                .cpuUsage: MetricValue(primaryValue: 23, secondaryValue: nil, unit: .percent),
+                .memoryUsage: MetricValue(primaryValue: 14.2, secondaryValue: 32, unit: .gigabytes)
             ]
         )
 

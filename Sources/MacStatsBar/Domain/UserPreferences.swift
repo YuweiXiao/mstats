@@ -20,6 +20,16 @@ public struct UserPreferences: Codable, Equatable {
 
     public init(summaryMetricOrder: [MetricKind], maxVisibleSummaryItems: Int) {
         self.summaryMetricOrder = summaryMetricOrder
-        self.maxVisibleSummaryItems = maxVisibleSummaryItems
+        self.maxVisibleSummaryItems = max(0, maxVisibleSummaryItems)
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let summaryMetricOrder = try container.decode([MetricKind].self, forKey: .summaryMetricOrder)
+        let maxVisibleSummaryItems = try container.decode(Int.self, forKey: .maxVisibleSummaryItems)
+        self.init(
+            summaryMetricOrder: summaryMetricOrder,
+            maxVisibleSummaryItems: maxVisibleSummaryItems
+        )
     }
 }
