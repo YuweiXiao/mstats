@@ -14,6 +14,7 @@ public final class StatsStore: ObservableObject {
     private var pollingSessionID = UUID()
     private var isRefreshing = false
     private var rawNetworkBaseline: RawNetworkSample?
+    private var shouldResumePollingAfterWake = false
 
     public init(
         collector: any StatsCollecting,
@@ -67,6 +68,20 @@ public final class StatsStore: ObservableObject {
         pollingSessionID = UUID()
         pollingTask?.cancel()
         pollingTask = nil
+    }
+
+    public func handleWillSleep() {
+        shouldResumePollingAfterWake = isPolling
+        stopPolling()
+    }
+
+    public func handleDidWake() {
+        guard shouldResumePollingAfterWake else {
+            return
+        }
+
+        shouldResumePollingAfterWake = false
+        startPolling()
     }
 
     deinit {

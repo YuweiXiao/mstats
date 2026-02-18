@@ -7,6 +7,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statsStore: StatsStore?
     private let preferencesStore = PreferencesStore()
     private var cancellables: Set<AnyCancellable> = []
+    private var workspaceNotificationObservers: [NSObjectProtocol] = []
 
     private let summaryRefreshInterval: TimeInterval = 2
 
@@ -37,6 +38,38 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             snapshot: statsStore.currentSnapshot,
             preferences: preferencesStore.load()
         )
+        registerLifecycleObservers(for: statsStore)
         statsStore.startPolling()
+    }
+
+    deinit {
+        let notificationCenter = NSWorkspace.shared.notificationCenter
+        workspaceNotificationObservers.forEach { notificationCenter.removeObserver($0) }
+    }
+
+    private func registerLifecycleObservers(for statsStore: StatsStore) {
+        let notificationCenter = NSWorkspace.shared.notificationCenter
+
+        let willSleepObserver = notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak statsStore] _ in
+            Task { @MainActor in
+                statsStore?.handleWillSleep()
+            }
+        }
+
+        let didWakeObserver = notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak statsStore] _ in
+            Task { @MainActor in
+                statsStore?.handleDidWake()
+            }
+        }
+
+        workspaceNotificationObservers = [willSleepObserver, didWakeObserver]
     }
 }
