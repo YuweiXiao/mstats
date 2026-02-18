@@ -1,0 +1,42 @@
+import Foundation
+import XCTest
+@testable import MacStatsBar
+
+final class SummarySelectionEngineTests: XCTestCase {
+    func testSelectionLimitsToTwoByDefault() {
+        let order: [MetricKind] = [.cpuUsage, .memoryUsage, .networkThroughput]
+
+        let shown = SummarySelectionEngine.visibleMetrics(order: order)
+
+        XCTAssertEqual(shown, [.cpuUsage, .memoryUsage])
+    }
+
+    func testSelectionPreservesOrderingWithCustomCap() {
+        let order: [MetricKind] = [.networkThroughput, .cpuUsage, .memoryUsage, .diskUsage]
+
+        let shown = SummarySelectionEngine.visibleMetrics(order: order, maxVisible: 3)
+
+        XCTAssertEqual(shown, [.networkThroughput, .cpuUsage, .memoryUsage])
+    }
+}
+
+final class StatusBarControllerSummaryTests: XCTestCase {
+    func testSummaryTextRendersSelectedMetricsFromSnapshotUsingFormatter() {
+        let snapshot = StatsSnapshot(
+            timestamp: Date(timeIntervalSince1970: 0),
+            metrics: [
+                .cpuUsage: MetricValue(primaryValue: 23.2, secondaryValue: nil, unit: .percent),
+                .memoryUsage: MetricValue(primaryValue: 14.24, secondaryValue: 31.96, unit: .gigabytes),
+                .networkThroughput: MetricValue(primaryValue: 2.14, secondaryValue: 0.36, unit: .megabytesPerSecond)
+            ]
+        )
+        let preferences = UserPreferences(
+            summaryMetricOrder: [.networkThroughput, .cpuUsage, .memoryUsage],
+            maxVisibleSummaryItems: 99
+        )
+
+        let text = StatusBarController.summaryText(snapshot: snapshot, preferences: preferences)
+
+        XCTAssertEqual(text, "NET 2.1↓ 0.4↑ MB/s | CPU 23%")
+    }
+}
