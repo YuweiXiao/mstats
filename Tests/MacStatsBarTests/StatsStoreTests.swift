@@ -49,6 +49,79 @@ final class StatsStoreTests: XCTestCase {
         XCTAssertFalse(store.isPolling)
     }
 
+    @MainActor
+    func testStartPollingRefreshesRepeatedlyWhileRunning() async {
+        let collector = CountingStatsCollector()
+        let store = StatsStore(collector: collector, refreshInterval: 0.05)
+
+        store.startPolling()
+        let reachedThreeCalls = await eventually(timeoutNanoseconds: 1_000_000_000) {
+            await collector.readCallCount() >= 3
+        }
+        store.stopPolling()
+        let finalCount = await collector.readCallCount()
+
+        XCTAssertTrue(reachedThreeCalls)
+        XCTAssertGreaterThanOrEqual(finalCount, 3)
+    }
+
+    @MainActor
+    func testStopPollingPreventsLatePublishFromInFlightCollect() async {
+        let collectStarted = expectation(description: "collect started")
+        let snapshot = makeSnapshot(cpu: 73)
+        let collector = BlockingFirstCollectStatsCollector(
+            snapshot: snapshot,
+            onFirstCollectStart: { collectStarted.fulfill() }
+        )
+        let store = StatsStore(collector: collector, refreshInterval: 1)
+
+        store.startPolling()
+        await fulfillment(of: [collectStarted], timeout: 1)
+        store.stopPolling()
+        await collector.unblockFirstCollect()
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertNil(store.currentSnapshot)
+    }
+
+    @MainActor
+    func testNonPositiveIntervalUsesMinimumDelayAndAvoidsTightSpin() async {
+        let collector = CountingStatsCollector()
+        let store = StatsStore(collector: collector, refreshInterval: 0)
+
+        store.startPolling()
+        try? await Task.sleep(nanoseconds: 120_000_000)
+        store.stopPolling()
+
+        let callCount = await collector.readCallCount()
+        XCTAssertGreaterThanOrEqual(callCount, 1)
+        XCTAssertLessThanOrEqual(callCount, 4)
+    }
+
+    @MainActor
+    func testRefreshOnceDoesNotStartSecondCollectWhileCollectInFlight() async {
+        let collectStarted = expectation(description: "first collect started")
+        let collector = BlockingFirstCollectStatsCollector(
+            snapshot: makeSnapshot(cpu: 33),
+            onFirstCollectStart: { collectStarted.fulfill() }
+        )
+        let store = StatsStore(collector: collector, refreshInterval: 60)
+
+        let firstRefresh = Task { await store.refreshOnce() }
+        await fulfillment(of: [collectStarted], timeout: 1)
+
+        let secondRefresh = Task { await store.refreshOnce() }
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        let countWhileBlocked = await collector.readCallCount()
+
+        XCTAssertEqual(countWhileBlocked, 1)
+        await collector.unblockFirstCollect()
+        await firstRefresh.value
+        await secondRefresh.value
+        let finalCount = await collector.readCallCount()
+        XCTAssertEqual(finalCount, 1)
+    }
+
     private func makeSnapshot(cpu: Double) -> StatsSnapshot {
         StatsSnapshot(
             timestamp: Date(timeIntervalSince1970: 1_706_000_000),
@@ -56,6 +129,21 @@ final class StatsStoreTests: XCTestCase {
                 .cpuUsage: MetricValue(primaryValue: cpu, secondaryValue: nil, unit: .percent)
             ]
         )
+    }
+
+    private func eventually(
+        timeoutNanoseconds: UInt64,
+        pollNanoseconds: UInt64 = 10_000_000,
+        condition: @escaping @Sendable () async -> Bool
+    ) async -> Bool {
+        let started = ContinuousClock.now
+        while started.duration(to: ContinuousClock.now) < .nanoseconds(Int64(timeoutNanoseconds)) {
+            if await condition() {
+                return true
+            }
+            try? await Task.sleep(nanoseconds: pollNanoseconds)
+        }
+        return false
     }
 }
 
@@ -89,4 +177,59 @@ private actor SequencedStatsCollector: StatsCollecting {
 private enum TestCollectorError: Error {
     case expected
     case exhausted
+}
+
+private actor CountingStatsCollector: StatsCollecting {
+    private var callCount = 0
+
+    func collect() async throws -> StatsSnapshot {
+        callCount += 1
+        return StatsSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_000 + TimeInterval(callCount)),
+            metrics: [
+                .cpuUsage: MetricValue(primaryValue: Double(callCount), secondaryValue: nil, unit: .percent)
+            ]
+        )
+    }
+
+    func readCallCount() -> Int {
+        callCount
+    }
+}
+
+private actor BlockingFirstCollectStatsCollector: StatsCollecting {
+    private let snapshot: StatsSnapshot
+    private let onFirstCollectStart: @Sendable () -> Void
+
+    private var callCount = 0
+    private var isFirstCollectReleased = false
+    private var firstCollectContinuation: CheckedContinuation<Void, Never>?
+
+    init(snapshot: StatsSnapshot, onFirstCollectStart: @escaping @Sendable () -> Void) {
+        self.snapshot = snapshot
+        self.onFirstCollectStart = onFirstCollectStart
+    }
+
+    func collect() async throws -> StatsSnapshot {
+        callCount += 1
+        if callCount == 1 {
+            onFirstCollectStart()
+            if !isFirstCollectReleased {
+                await withCheckedContinuation { continuation in
+                    firstCollectContinuation = continuation
+                }
+            }
+        }
+        return snapshot
+    }
+
+    func unblockFirstCollect() {
+        isFirstCollectReleased = true
+        firstCollectContinuation?.resume()
+        firstCollectContinuation = nil
+    }
+
+    func readCallCount() -> Int {
+        callCount
+    }
 }
