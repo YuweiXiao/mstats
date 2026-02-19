@@ -100,8 +100,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func buildInitialSettings() -> SettingsState {
         let savedPreferences = preferencesStore.load()
+        let showSecondaryMetric = savedPreferences.maxVisibleSummaryItems > 1 && savedPreferences.summaryMetricOrder.count > 1
         return SettingsState(
             summaryMetricOrder: savedPreferences.summaryMetricOrder,
+            showSecondaryMetric: showSecondaryMetric,
             refreshInterval: summaryRefreshInterval,
             launchAtLoginEnabled: loginItemService.isEnabled,
             popoverPinBehavior: .autoClose
@@ -109,9 +111,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func currentSummaryPreferences() -> UserPreferences {
-        UserPreferences(
-            summaryMetricOrder: settingsState.summaryMetricOrder,
-            maxVisibleSummaryItems: 2
+        var order = [settingsState.primaryStatusMetric]
+        if let secondary = settingsState.secondaryStatusMetric {
+            order.append(secondary)
+        }
+
+        return UserPreferences(
+            summaryMetricOrder: order,
+            maxVisibleSummaryItems: order.count
         )
     }
 

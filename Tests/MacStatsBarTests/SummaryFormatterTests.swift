@@ -113,4 +113,16 @@ final class SummaryFormatterTests: XCTestCase {
             "NET 4↓ --↑ MB/s"
         )
     }
+
+    func testCompactValueFormattingClampsAtConfiguredMaximums() {
+        XCTAssertEqual(SummaryFormatter.compactPercentValue(142), "99%")
+        XCTAssertEqual(
+            SummaryFormatter.compactNetworkValue(downloadMBps: 142.3, uploadMBps: 120.7),
+            "99.9↓99.9↑"
+        )
+        XCTAssertEqual(
+            SummaryFormatter.compactPairValue(first: 120.5, second: 150.2, suffix: "G"),
+            "99.9/99.9G"
+        )
+    }
 }

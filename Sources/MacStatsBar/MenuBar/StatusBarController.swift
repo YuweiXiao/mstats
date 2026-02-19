@@ -10,6 +10,8 @@ extension NSApplication: ApplicationTerminating {}
 public final class StatusBarController: NSObject {
     private static let fallbackSummaryText = "--"
     private static let menuBarMaxVisibleMetrics = 2
+    private static let singleMetricStatusLength: CGFloat = 48
+    private static let dualMetricStatusLength: CGFloat = 92
 
     private let statusItem: NSStatusItem
     private let popover: NSPopover
@@ -43,7 +45,14 @@ public final class StatusBarController: NSObject {
     }
 
     func renderSummary(snapshot: StatsSnapshot?, preferences: UserPreferences) {
-        statusItem.button?.title = Self.summaryText(snapshot: snapshot, preferences: preferences)
+        let text = Self.summaryText(snapshot: snapshot, preferences: preferences)
+        let visibleCount = Self.visibleMetricCount(preferences: preferences)
+        statusItem.length = visibleCount > 1 ? Self.dualMetricStatusLength : Self.singleMetricStatusLength
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        ]
+        statusItem.button?.attributedTitle = NSAttributedString(string: text, attributes: attributes)
     }
 
     func updatePopover(snapshot: StatsSnapshot?, settings: SettingsState) {
@@ -63,14 +72,7 @@ public final class StatusBarController: NSObject {
     }
 
     static func summaryText(snapshot: StatsSnapshot?, preferences: UserPreferences) -> String {
-        let maxVisible = min(
-            menuBarMaxVisibleMetrics,
-            max(0, preferences.maxVisibleSummaryItems)
-        )
-        let metricKinds = SummarySelectionEngine.visibleMetrics(
-            order: preferences.summaryMetricOrder,
-            maxVisible: maxVisible
-        )
+        let metricKinds = visibleMetricKinds(preferences: preferences)
 
         let parts = metricKinds.map { metricKind in
             format(metricKind: metricKind, snapshot: snapshot)
@@ -109,6 +111,21 @@ public final class StatusBarController: NSObject {
                 suffix: "G"
             )
         }
+    }
+
+    private static func visibleMetricCount(preferences: UserPreferences) -> Int {
+        visibleMetricKinds(preferences: preferences).count
+    }
+
+    private static func visibleMetricKinds(preferences: UserPreferences) -> [MetricKind] {
+        let maxVisible = min(
+            menuBarMaxVisibleMetrics,
+            max(0, preferences.maxVisibleSummaryItems)
+        )
+        return SummarySelectionEngine.visibleMetrics(
+            order: preferences.summaryMetricOrder,
+            maxVisible: maxVisible
+        )
     }
 
     @objc

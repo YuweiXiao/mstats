@@ -46,6 +46,25 @@ final class StatusBarControllerSummaryTests: XCTestCase {
         XCTAssertNotNil(statusItem.button?.action)
     }
 
+    func testStatusBarControllerUsesFixedLengthForOneAndTwoMetricLayouts() {
+        _ = NSApplication.shared
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        defer { NSStatusBar.system.removeStatusItem(statusItem) }
+
+        let controller = StatusBarController(statusItem: statusItem)
+
+        let oneMetric = UserPreferences(summaryMetricOrder: [.cpuUsage], maxVisibleSummaryItems: 1)
+        controller.renderSummary(snapshot: nil, preferences: oneMetric)
+        let oneMetricLength = statusItem.length
+
+        let twoMetric = UserPreferences(summaryMetricOrder: [.cpuUsage, .networkThroughput], maxVisibleSummaryItems: 2)
+        controller.renderSummary(snapshot: nil, preferences: twoMetric)
+        let twoMetricLength = statusItem.length
+
+        XCTAssertGreaterThan(twoMetricLength, oneMetricLength)
+        XCTAssertGreaterThan(oneMetricLength, 0)
+    }
+
     func testPopoverBehaviorMatchesSettingsPinBehavior() {
         XCTAssertEqual(
             StatusBarController.popoverBehavior(for: .autoClose),

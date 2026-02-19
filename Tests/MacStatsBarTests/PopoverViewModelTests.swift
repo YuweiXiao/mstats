@@ -83,6 +83,25 @@ final class PopoverViewModelTests: XCTestCase {
         )
     }
 
+    func testSettingsStateSecondaryMetricCanBeDisabled() {
+        var settings = SettingsState.defaultValue
+
+        settings.secondaryStatusMetric = nil
+
+        XCTAssertNil(settings.secondaryStatusMetric)
+        XCTAssertFalse(settings.showSecondaryMetric)
+    }
+
+    func testSettingsStateSecondaryMetricReenableUsesSelectedMetric() {
+        var settings = SettingsState.defaultValue
+        settings.secondaryStatusMetric = nil
+
+        settings.secondaryStatusMetric = .diskUsage
+
+        XCTAssertEqual(settings.secondaryStatusMetric, .diskUsage)
+        XCTAssertTrue(settings.showSecondaryMetric)
+    }
+
     func testPopoverRootViewAcceptsExternalSettingsBinding() {
         let rootView = PopoverRootView(snapshot: nil, settings: .constant(.defaultValue))
 

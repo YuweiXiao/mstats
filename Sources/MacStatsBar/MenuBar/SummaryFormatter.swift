@@ -47,7 +47,7 @@ public enum SummaryFormatter {
     static func compactPercentValue(_ percent: Double?) -> String {
         guard
             let percent = normalized(percent),
-            let percentText = safeIntegerString(percent)
+            let percentText = safeIntegerString(min(max(percent, 0), 99))
         else {
             return placeholder
         }
@@ -56,15 +56,19 @@ public enum SummaryFormatter {
     }
 
     static func compactPairValue(first: Double?, second: Double?, suffix: String = "") -> String {
-        let firstText = compactNumber(first)
-        let secondText = compactNumber(second)
+        let firstText = compactClampedNumber(first, maxValue: 99.9)
+        let secondText = compactClampedNumber(second, maxValue: 99.9)
         return "\(firstText)/\(secondText)\(suffix)"
     }
 
     static func compactNetworkValue(downloadMBps: Double?, uploadMBps: Double?) -> String {
-        let downText = compactNumber(downloadMBps)
-        let upText = compactNumber(uploadMBps)
+        let downText = compactClampedNumber(downloadMBps, maxValue: 99.9)
+        let upText = compactClampedNumber(uploadMBps, maxValue: 99.9)
         return "\(downText)↓\(upText)↑"
+    }
+
+    static func compactSummaryPlaceholder() -> String {
+        placeholder
     }
 
     private static func compactNumber(_ value: Double?) -> String {
@@ -86,6 +90,14 @@ public enum SummaryFormatter {
         }
 
         return String(format: "%.1f", locale: fixedLocale, roundedToTenths)
+    }
+
+    private static func compactClampedNumber(_ value: Double?, maxValue: Double) -> String {
+        guard let value = normalized(value), value >= 0 else {
+            return placeholder
+        }
+
+        return compactNumber(min(value, maxValue))
     }
 
     private static func normalized(_ value: Double?) -> Double? {

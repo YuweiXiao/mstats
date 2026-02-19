@@ -18,6 +18,7 @@ public struct SettingsState: Equatable {
     }
 
     public var summaryMetricOrder: [MetricKind]
+    public var showSecondaryMetric: Bool
     public var refreshInterval: TimeInterval
     public var launchAtLoginEnabled: Bool
     public var popoverPinBehavior: PopoverPinBehavior
@@ -30,6 +31,7 @@ public struct SettingsState: Equatable {
             .batteryStatus,
             .diskUsage
         ],
+        showSecondaryMetric: true,
         refreshInterval: 2,
         launchAtLoginEnabled: false,
         popoverPinBehavior: .autoClose
@@ -37,14 +39,42 @@ public struct SettingsState: Equatable {
 
     public init(
         summaryMetricOrder: [MetricKind],
+        showSecondaryMetric: Bool = true,
         refreshInterval: TimeInterval,
         launchAtLoginEnabled: Bool,
         popoverPinBehavior: PopoverPinBehavior
     ) {
-        self.summaryMetricOrder = summaryMetricOrder
+        self.summaryMetricOrder = Self.normalizedSummaryMetricOrder(summaryMetricOrder)
+        self.showSecondaryMetric = showSecondaryMetric
         self.refreshInterval = refreshInterval
         self.launchAtLoginEnabled = launchAtLoginEnabled
         self.popoverPinBehavior = popoverPinBehavior
+    }
+
+    public var primaryStatusMetric: MetricKind {
+        get {
+            summaryMetricOrder.first ?? .cpuUsage
+        }
+        set {
+            updateSummaryMetric(at: 0, to: newValue)
+        }
+    }
+
+    public var secondaryStatusMetric: MetricKind? {
+        get {
+            guard showSecondaryMetric, summaryMetricOrder.indices.contains(1) else {
+                return nil
+            }
+            return summaryMetricOrder[1]
+        }
+        set {
+            guard let newValue else {
+                showSecondaryMetric = false
+                return
+            }
+            showSecondaryMetric = true
+            updateSummaryMetric(at: 1, to: newValue)
+        }
     }
 
     public mutating func updateSummaryMetric(at index: Int, to newValue: MetricKind) {
@@ -63,6 +93,17 @@ public struct SettingsState: Equatable {
 
         summaryMetricOrder[index] = newValue
     }
+
+    private static func normalizedSummaryMetricOrder(_ input: [MetricKind]) -> [MetricKind] {
+        var ordered: [MetricKind] = []
+        for metric in input where !ordered.contains(metric) {
+            ordered.append(metric)
+        }
+        for metric in MetricKind.allCases where !ordered.contains(metric) {
+            ordered.append(metric)
+        }
+        return ordered
+    }
 }
 
 public struct SettingsView: View {
@@ -76,12 +117,21 @@ public struct SettingsView: View {
 
     public var body: some View {
         Form {
-            Section("Summary Order") {
-                ForEach(Array(settings.summaryMetricOrder.enumerated()), id: \.offset) { index, _ in
-                    Picker("Position \(index + 1)", selection: summaryMetricBinding(at: index)) {
-                        ForEach(MetricKind.allCases, id: \.self) { kind in
-                            Text(label(for: kind)).tag(kind)
-                        }
+            Section("Status Bar Metrics") {
+                Text("Only Primary and optional Secondary are shown in the menu bar.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                Picker("Primary", selection: primaryMetricBinding) {
+                    ForEach(MetricKind.allCases, id: \.self) { kind in
+                        Text(label(for: kind)).tag(kind)
+                    }
+                }
+
+                Picker("Secondary", selection: secondaryMetricBinding) {
+                    Text("None").tag(Optional<MetricKind>.none)
+                    ForEach(MetricKind.allCases.filter { $0 != settings.primaryStatusMetric }, id: \.self) { kind in
+                        Text(label(for: kind)).tag(Optional(kind))
                     }
                 }
             }
@@ -105,21 +155,20 @@ public struct SettingsView: View {
         }
     }
 
-    private func summaryMetricBinding(at index: Int) -> Binding<MetricKind> {
+    private var primaryMetricBinding: Binding<MetricKind> {
         Binding(
-            get: {
-                guard settings.summaryMetricOrder.indices.contains(index) else {
-                    return .cpuUsage
-                }
-
-                return settings.summaryMetricOrder[index]
-            },
+            get: { settings.primaryStatusMetric },
             set: { newValue in
-                guard settings.summaryMetricOrder.indices.contains(index) else {
-                    return
-                }
+                settings.primaryStatusMetric = newValue
+            }
+        )
+    }
 
-                settings.updateSummaryMetric(at: index, to: newValue)
+    private var secondaryMetricBinding: Binding<MetricKind?> {
+        Binding(
+            get: { settings.secondaryStatusMetric },
+            set: { newValue in
+                settings.secondaryStatusMetric = newValue
             }
         )
     }
