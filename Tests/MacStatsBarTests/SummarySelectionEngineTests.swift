@@ -60,7 +60,7 @@ final class StatusBarControllerSummaryTests: XCTestCase {
 
         let text = StatusBarController.summaryText(snapshot: snapshot, preferences: preferences)
 
-        XCTAssertEqual(text, "NET 2.1↓ 0.4↑ MB/s | CPU 23%")
+        XCTAssertEqual(text, "2.1↓0.4↑ | 23%")
     }
 
     func testSummaryTextFallsBackWhenNoVisibleMetricsAreSelected() {
@@ -82,6 +82,6 @@ final class StatusBarControllerSummaryTests: XCTestCase {
 
         let text = StatusBarController.summaryText(snapshot: nil, preferences: preferences)
 
-        XCTAssertEqual(text, "CPU --")
+        XCTAssertEqual(text, "--")
     }
 }

@@ -79,23 +79,25 @@ public final class StatusBarController: NSObject {
 
         switch metricKind {
         case .cpuUsage:
-            return SummaryFormatter.formatCPU(metric?.primaryValue)
+            return SummaryFormatter.compactPercentValue(metric?.primaryValue)
         case .memoryUsage:
-            return SummaryFormatter.formatMemory(
-                usedGB: metric?.primaryValue,
-                totalGB: metric?.secondaryValue
+            return SummaryFormatter.compactPairValue(
+                first: metric?.primaryValue,
+                second: metric?.secondaryValue,
+                suffix: "G"
             )
         case .networkThroughput:
-            return SummaryFormatter.formatNetwork(
+            return SummaryFormatter.compactNetworkValue(
                 downloadMBps: metric?.primaryValue,
                 uploadMBps: metric?.secondaryValue
             )
         case .batteryStatus:
-            return SummaryFormatter.formatBattery(metric?.primaryValue)
+            return SummaryFormatter.compactPercentValue(metric?.primaryValue)
         case .diskUsage:
-            return SummaryFormatter.formatDisk(
-                usedGB: metric?.primaryValue,
-                totalGB: metric?.secondaryValue
+            return SummaryFormatter.compactPairValue(
+                first: metric?.primaryValue,
+                second: metric?.secondaryValue,
+                suffix: "G"
             )
         }
     }

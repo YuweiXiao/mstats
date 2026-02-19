@@ -44,6 +44,29 @@ public enum SummaryFormatter {
         return "NET \(downText)↓ \(upText)↑ MB/s"
     }
 
+    static func compactPercentValue(_ percent: Double?) -> String {
+        guard
+            let percent = normalized(percent),
+            let percentText = safeIntegerString(percent)
+        else {
+            return placeholder
+        }
+
+        return "\(percentText)%"
+    }
+
+    static func compactPairValue(first: Double?, second: Double?, suffix: String = "") -> String {
+        let firstText = compactNumber(first)
+        let secondText = compactNumber(second)
+        return "\(firstText)/\(secondText)\(suffix)"
+    }
+
+    static func compactNetworkValue(downloadMBps: Double?, uploadMBps: Double?) -> String {
+        let downText = compactNumber(downloadMBps)
+        let upText = compactNumber(uploadMBps)
+        return "\(downText)↓\(upText)↑"
+    }
+
     private static func compactNumber(_ value: Double?) -> String {
         guard let value = normalized(value) else {
             return placeholder
