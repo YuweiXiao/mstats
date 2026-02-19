@@ -10,12 +10,20 @@ let package = Package(
         .library(
             name: "MacStatsBar",
             targets: ["MacStatsBar"]
+        ),
+        .executable(
+            name: "MacStatsBarApp",
+            targets: ["MacStatsBarApp"]
         )
     ],
     dependencies: [],
     targets: [
         .target(
             name: "MacStatsBar"
+        ),
+        .executableTarget(
+            name: "MacStatsBarApp",
+            dependencies: ["MacStatsBar"]
         ),
         .testTarget(
             name: "MacStatsBarTests",

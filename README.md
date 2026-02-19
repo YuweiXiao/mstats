@@ -29,6 +29,26 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --filter Sta
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --filter SystemCollectorMappingTests
 ```
 
+Build the app executable target:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift build --product MacStatsBarApp
+```
+
+## Build App Bundle
+
+Create a local `.app` bundle in `dist/`:
+
+```bash
+./scripts/build_app_bundle.sh
+```
+
+Launch it:
+
+```bash
+open dist/MacStatsBar.app
+```
+
 ## Manual Validation
 
 Manual QA checklist: `docs/testing/manual-test-checklist.md`
