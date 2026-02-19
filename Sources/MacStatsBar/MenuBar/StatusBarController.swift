@@ -1,6 +1,12 @@
 import AppKit
 import SwiftUI
 
+public protocol ApplicationTerminating {
+    func terminate(_ sender: Any?)
+}
+
+extension NSApplication: ApplicationTerminating {}
+
 public final class StatusBarController: NSObject {
     private static let fallbackSummaryText = "--"
     private static let menuBarMaxVisibleMetrics = 2
@@ -8,6 +14,7 @@ public final class StatusBarController: NSObject {
     private let statusItem: NSStatusItem
     private let popover: NSPopover
     private let onSettingsChanged: (SettingsState) -> Void
+    private let appTerminator: any ApplicationTerminating
     private var popoverSnapshot: StatsSnapshot?
     private var popoverSettings: SettingsState
 
@@ -15,10 +22,12 @@ public final class StatusBarController: NSObject {
         statusItem: NSStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength),
         initialSettings: SettingsState = .defaultValue,
         onSettingsChanged: @escaping (SettingsState) -> Void = { _ in },
-        popover: NSPopover = NSPopover()
+        popover: NSPopover = NSPopover(),
+        appTerminator: any ApplicationTerminating = NSApplication.shared
     ) {
         self.popover = popover
         self.onSettingsChanged = onSettingsChanged
+        self.appTerminator = appTerminator
         self.popoverSettings = initialSettings
         self.statusItem = statusItem
         super.init()
@@ -120,6 +129,9 @@ public final class StatusBarController: NSObject {
     private func refreshPopoverContent() {
         let rootView = PopoverRootView(
             snapshot: popoverSnapshot,
+            onExitRequested: { [weak self] in
+                self?.handleExitRequested()
+            },
             settings: Binding(
                 get: { self.popoverSettings },
                 set: { [weak self] updated in
@@ -139,5 +151,10 @@ public final class StatusBarController: NSObject {
         } else {
             popover.contentViewController = NSHostingController(rootView: rootView)
         }
+    }
+
+    func handleExitRequested() {
+        popover.performClose(nil)
+        appTerminator.terminate(nil)
     }
 }

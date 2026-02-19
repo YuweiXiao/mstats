@@ -22,6 +22,19 @@ final class SummarySelectionEngineTests: XCTestCase {
 }
 
 final class StatusBarControllerSummaryTests: XCTestCase {
+    func testHandleExitRequestedTerminatesApplication() {
+        _ = NSApplication.shared
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        defer { NSStatusBar.system.removeStatusItem(statusItem) }
+
+        let terminator = TestApplicationTerminator()
+        let controller = StatusBarController(statusItem: statusItem, appTerminator: terminator)
+
+        controller.handleExitRequested()
+
+        XCTAssertEqual(terminator.terminateCallCount, 1)
+    }
+
     func testStatusBarControllerConfiguresButtonActionForPopoverToggle() {
         _ = NSApplication.shared
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -83,5 +96,13 @@ final class StatusBarControllerSummaryTests: XCTestCase {
         let text = StatusBarController.summaryText(snapshot: nil, preferences: preferences)
 
         XCTAssertEqual(text, "--")
+    }
+}
+
+private final class TestApplicationTerminator: ApplicationTerminating {
+    private(set) var terminateCallCount = 0
+
+    func terminate(_ sender: Any?) {
+        terminateCallCount += 1
     }
 }

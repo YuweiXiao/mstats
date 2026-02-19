@@ -2,13 +2,16 @@ import SwiftUI
 
 public struct PopoverRootView: View {
     private let viewModel: PopoverViewModel
+    private let onExitRequested: () -> Void
     @Binding private var settings: SettingsState
 
     public init(
         snapshot: StatsSnapshot?,
+        onExitRequested: @escaping () -> Void = {},
         settings: Binding<SettingsState>
     ) {
         viewModel = PopoverViewModel(snapshot: snapshot)
+        self.onExitRequested = onExitRequested
         _settings = settings
     }
 
@@ -22,6 +25,11 @@ public struct PopoverRootView: View {
 
             SettingsView(settings: $settings)
                 .frame(minHeight: 260)
+
+            Button("Quit MacStatsBar") {
+                onExitRequested()
+            }
+            .keyboardShortcut("q")
         }
         .padding(12)
         .frame(width: 340)
