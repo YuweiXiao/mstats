@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import XCTest
 @testable import MacStatsBar
@@ -21,6 +22,28 @@ final class SummarySelectionEngineTests: XCTestCase {
 }
 
 final class StatusBarControllerSummaryTests: XCTestCase {
+    func testStatusBarControllerConfiguresButtonActionForPopoverToggle() {
+        _ = NSApplication.shared
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        defer { NSStatusBar.system.removeStatusItem(statusItem) }
+
+        _ = StatusBarController(statusItem: statusItem)
+
+        XCTAssertNotNil(statusItem.button?.target)
+        XCTAssertNotNil(statusItem.button?.action)
+    }
+
+    func testPopoverBehaviorMatchesSettingsPinBehavior() {
+        XCTAssertEqual(
+            StatusBarController.popoverBehavior(for: .autoClose),
+            .transient
+        )
+        XCTAssertEqual(
+            StatusBarController.popoverBehavior(for: .pinned),
+            .applicationDefined
+        )
+    }
+
     func testSummaryTextRendersSelectedMetricsFromSnapshotUsingFormatter() {
         let snapshot = StatsSnapshot(
             timestamp: Date(timeIntervalSince1970: 0),

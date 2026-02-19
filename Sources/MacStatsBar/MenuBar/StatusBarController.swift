@@ -1,20 +1,56 @@
 import AppKit
+import SwiftUI
 
-public final class StatusBarController {
+public final class StatusBarController: NSObject {
     private static let fallbackSummaryText = "--"
     private static let menuBarMaxVisibleMetrics = 2
 
     private let statusItem: NSStatusItem
+    private let popover: NSPopover
+    private let onSettingsChanged: (SettingsState) -> Void
+    private var popoverSnapshot: StatsSnapshot?
+    private var popoverSettings: SettingsState
 
     public init(
-        statusItem: NSStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem: NSStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength),
+        initialSettings: SettingsState = .defaultValue,
+        onSettingsChanged: @escaping (SettingsState) -> Void = { _ in },
+        popover: NSPopover = NSPopover()
     ) {
+        self.popover = popover
+        self.onSettingsChanged = onSettingsChanged
+        self.popoverSettings = initialSettings
         self.statusItem = statusItem
+        super.init()
+
         statusItem.button?.title = Self.fallbackSummaryText
+        statusItem.button?.target = self
+        statusItem.button?.action = #selector(togglePopover(_:))
+
+        self.popover.behavior = Self.popoverBehavior(for: initialSettings.popoverPinBehavior)
+        self.popover.animates = true
+        self.popover.contentSize = NSSize(width: 340, height: 420)
+        refreshPopoverContent()
     }
 
     func renderSummary(snapshot: StatsSnapshot?, preferences: UserPreferences) {
         statusItem.button?.title = Self.summaryText(snapshot: snapshot, preferences: preferences)
+    }
+
+    func updatePopover(snapshot: StatsSnapshot?, settings: SettingsState) {
+        popoverSnapshot = snapshot
+        popoverSettings = settings
+        popover.behavior = Self.popoverBehavior(for: settings.popoverPinBehavior)
+        refreshPopoverContent()
+    }
+
+    static func popoverBehavior(for behavior: SettingsState.PopoverPinBehavior) -> NSPopover.Behavior {
+        switch behavior {
+        case .autoClose:
+            return .transient
+        case .pinned:
+            return .applicationDefined
+        }
     }
 
     static func summaryText(snapshot: StatsSnapshot?, preferences: UserPreferences) -> String {
@@ -61,6 +97,45 @@ public final class StatusBarController {
                 usedGB: metric?.primaryValue,
                 totalGB: metric?.secondaryValue
             )
+        }
+    }
+
+    @objc
+    private func togglePopover(_ sender: Any?) {
+        guard let button = statusItem.button else {
+            return
+        }
+
+        if popover.isShown {
+            popover.performClose(sender)
+            return
+        }
+
+        refreshPopoverContent()
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    }
+
+    private func refreshPopoverContent() {
+        let rootView = PopoverRootView(
+            snapshot: popoverSnapshot,
+            settings: Binding(
+                get: { self.popoverSettings },
+                set: { [weak self] updated in
+                    guard let self else {
+                        return
+                    }
+
+                    self.popoverSettings = updated
+                    self.popover.behavior = Self.popoverBehavior(for: updated.popoverPinBehavior)
+                    self.onSettingsChanged(updated)
+                }
+            )
+        )
+
+        if let hostingController = popover.contentViewController as? NSHostingController<PopoverRootView> {
+            hostingController.rootView = rootView
+        } else {
+            popover.contentViewController = NSHostingController(rootView: rootView)
         }
     }
 }

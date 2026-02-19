@@ -6,15 +6,31 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarController: StatusBarController?
     private var statsStore: StatsStore?
     private let preferencesStore = PreferencesStore()
+    private let loginItemService: any LoginItemServicing
     private var cancellables: Set<AnyCancellable> = []
     private var workspaceNotificationObservers: [NSObjectProtocol] = []
+    private var settingsState = SettingsState.defaultValue
 
     private let summaryRefreshInterval: TimeInterval = 2
 
-    public override init() {}
+    public override init() {
+        loginItemService = LoginItemService()
+        super.init()
+    }
+
+    init(loginItemService: any LoginItemServicing) {
+        self.loginItemService = loginItemService
+        super.init()
+    }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
-        let statusBarController = StatusBarController()
+        settingsState = buildInitialSettings()
+        let statusBarController = StatusBarController(
+            initialSettings: settingsState,
+            onSettingsChanged: { [weak self] settings in
+                self?.handleSettingsChanged(settings)
+            }
+        )
         self.statusBarController = statusBarController
 
         let statsStore = StatsStore(
@@ -29,15 +45,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
 
-                let preferences = self.preferencesStore.load()
+                let preferences = self.currentSummaryPreferences()
                 statusBarController.renderSummary(snapshot: snapshot, preferences: preferences)
+                statusBarController.updatePopover(snapshot: snapshot, settings: self.settingsState)
             }
             .store(in: &cancellables)
 
         statusBarController.renderSummary(
             snapshot: statsStore.currentSnapshot,
-            preferences: preferencesStore.load()
+            preferences: currentSummaryPreferences()
         )
+        statusBarController.updatePopover(snapshot: statsStore.currentSnapshot, settings: settingsState)
         registerLifecycleObservers(for: statsStore)
         statsStore.startPolling()
     }
@@ -78,5 +96,36 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let notificationCenter = NSWorkspace.shared.notificationCenter
         workspaceNotificationObservers.forEach { notificationCenter.removeObserver($0) }
         workspaceNotificationObservers.removeAll()
+    }
+
+    private func buildInitialSettings() -> SettingsState {
+        let savedPreferences = preferencesStore.load()
+        return SettingsState(
+            summaryMetricOrder: savedPreferences.summaryMetricOrder,
+            refreshInterval: summaryRefreshInterval,
+            launchAtLoginEnabled: loginItemService.isEnabled,
+            popoverPinBehavior: .autoClose
+        )
+    }
+
+    private func currentSummaryPreferences() -> UserPreferences {
+        UserPreferences(
+            summaryMetricOrder: settingsState.summaryMetricOrder,
+            maxVisibleSummaryItems: 2
+        )
+    }
+
+    private func handleSettingsChanged(_ settings: SettingsState) {
+        settingsState = settings
+
+        let updatedPreferences = currentSummaryPreferences()
+        preferencesStore.save(updatedPreferences)
+        statusBarController?.renderSummary(snapshot: statsStore?.currentSnapshot, preferences: updatedPreferences)
+
+        do {
+            try loginItemService.setEnabled(settings.launchAtLoginEnabled)
+        } catch {
+            // Keep UI responsive; backend failures are handled by service tests.
+        }
     }
 }
