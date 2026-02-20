@@ -39,9 +39,17 @@ public enum SummaryFormatter {
     }
 
     public static func formatNetwork(downloadMBps: Double?, uploadMBps: Double?) -> String {
-        let downText = compactNumber(downloadMBps)
-        let upText = compactNumber(uploadMBps)
-        return "NET \(downText)↓ \(upText)↑ MB/s"
+        let download = normalizedWithinIntegerBounds(downloadMBps)
+        let upload = normalizedWithinIntegerBounds(uploadMBps)
+
+        guard download != nil || upload != nil else {
+            return "NET \(placeholder)↓ \(placeholder)↑ MB/s"
+        }
+
+        let unit = compactThroughputUnit(downloadMBps: download, uploadMBps: upload)
+        let downText = detailedThroughput(downloadMBps: download, unit: unit)
+        let upText = detailedThroughput(downloadMBps: upload, unit: unit)
+        return "NET \(downText)↓ \(upText)↑ \(unit.rawValue)"
     }
 
     static func compactPercentValue(_ percent: Double?) -> String {
@@ -62,9 +70,31 @@ public enum SummaryFormatter {
     }
 
     static func compactNetworkValue(downloadMBps: Double?, uploadMBps: Double?) -> String {
-        let downText = compactClampedNumber(downloadMBps, maxValue: 99.9)
-        let upText = compactClampedNumber(uploadMBps, maxValue: 99.9)
-        return "\(downText)↓\(upText)↑"
+        let download = normalized(downloadMBps)
+        let upload = normalized(uploadMBps)
+
+        guard download != nil || upload != nil else {
+            return "\(placeholder)↓\(placeholder)↑MB/s"
+        }
+
+        let unit = compactThroughputUnit(downloadMBps: download, uploadMBps: upload)
+        let downText = compactThroughput(downloadMBps: download, unit: unit)
+        let upText = compactThroughput(downloadMBps: upload, unit: unit)
+        return "\(downText)↓\(upText)↑\(unit.rawValue)"
+    }
+
+    static func compactNetworkValueMultiline(downloadMBps: Double?, uploadMBps: Double?) -> String {
+        let download = normalized(downloadMBps)
+        let upload = normalized(uploadMBps)
+
+        guard download != nil || upload != nil else {
+            return "\(placeholder)↓\n\(placeholder)↑MB/s"
+        }
+
+        let unit = compactThroughputUnit(downloadMBps: download, uploadMBps: upload)
+        let downText = compactThroughput(downloadMBps: download, unit: unit)
+        let upText = compactThroughput(downloadMBps: upload, unit: unit)
+        return "\(downText)↓\n\(upText)↑\(unit.rawValue)"
     }
 
     static func compactSummaryPlaceholder() -> String {
@@ -100,11 +130,72 @@ public enum SummaryFormatter {
         return compactNumber(min(value, maxValue))
     }
 
+    private enum ThroughputUnit: String {
+        case kilobytesPerSecond = "KB/s"
+        case megabytesPerSecond = "MB/s"
+        case gigabytesPerSecond = "GB/s"
+    }
+
+    private static func compactThroughputUnit(downloadMBps: Double?, uploadMBps: Double?) -> ThroughputUnit {
+        let maxValue = max(downloadMBps ?? 0, uploadMBps ?? 0)
+
+        if maxValue >= 1024 {
+            return .gigabytesPerSecond
+        }
+        if maxValue < 1 {
+            return .kilobytesPerSecond
+        }
+        return .megabytesPerSecond
+    }
+
+    private static func compactThroughput(downloadMBps: Double?, unit: ThroughputUnit) -> String {
+        guard let value = normalized(downloadMBps), value >= 0 else {
+            return placeholder
+        }
+
+        let normalizedValue: Double
+        switch unit {
+        case .kilobytesPerSecond:
+            normalizedValue = value * 1024
+        case .megabytesPerSecond:
+            normalizedValue = value
+        case .gigabytesPerSecond:
+            normalizedValue = value / 1024
+        }
+
+        return compactNumber(min(normalizedValue, 999.9))
+    }
+
+    private static func detailedThroughput(downloadMBps: Double?, unit: ThroughputUnit) -> String {
+        guard let value = normalizedWithinIntegerBounds(downloadMBps), value >= 0 else {
+            return placeholder
+        }
+
+        let convertedValue: Double
+        switch unit {
+        case .kilobytesPerSecond:
+            convertedValue = value * 1024
+        case .megabytesPerSecond:
+            convertedValue = value
+        case .gigabytesPerSecond:
+            convertedValue = value / 1024
+        }
+
+        return compactNumber(convertedValue)
+    }
+
     private static func normalized(_ value: Double?) -> Double? {
         guard let value, value.isFinite else {
             return nil
         }
 
+        return value
+    }
+
+    private static func normalizedWithinIntegerBounds(_ value: Double?) -> Double? {
+        guard let value = normalized(value), abs(value) <= Double(Int.max) else {
+            return nil
+        }
         return value
     }
 

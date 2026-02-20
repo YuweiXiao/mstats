@@ -1,6 +1,6 @@
-# MacStatsBar
+# mstats
 
-macOS menu bar stats app in active development.
+Lightweight macOS menu bar monitor for live CPU, memory, network, battery, and disk stats.
 
 ## Scope
 
@@ -12,9 +12,28 @@ Current implementation includes:
 - Popover view-model and settings/detail UI components
 - Preferences persistence and login-item service abstraction
 
-## Build And Test
+## Download And Run (End Users)
 
-This repo is currently organized as a Swift package.
+1. Download the latest `mstats.app.zip` from GitHub Releases.
+2. Unzip and move `mstats.app` to `/Applications`.
+3. Launch with Finder or:
+
+```bash
+open /Applications/mstats.app
+```
+
+If macOS blocks first launch, right-click the app and choose `Open`.
+
+## Build And Test (Developers)
+
+### Prerequisites
+
+- macOS 14+
+- Xcode installed at `/Applications/Xcode.app`
+- Swift toolchain compatible with `SWIFT_VERSION = 5.10`
+- `xcodegen` for App Store project generation (`brew install xcodegen`)
+
+This repo is organized as a Swift package.
 
 Run full test suite:
 
@@ -46,8 +65,26 @@ Create a local `.app` bundle in `dist/`:
 Launch it:
 
 ```bash
-open dist/MacStatsBar.app
+open dist/mstats.app
 ```
+
+## App Store Project
+
+Generate the Xcode project used for App Store archive/upload:
+
+```bash
+xcodegen generate
+```
+
+Then open:
+
+```bash
+open MacStatsBar.xcodeproj
+```
+
+For end-to-end submission steps, see:
+
+- `docs/release/app-store-submission.md`
 
 ## Manual Validation
 
@@ -55,4 +92,9 @@ Manual QA checklist: `docs/testing/manual-test-checklist.md`
 
 ## Notes
 
-- Full app-bundle packaging/wiring for production release is still tracked in plan follow-up.
+- Local bundle workflow exists in `scripts/build_app_bundle.sh` and outputs `dist/mstats.app`.
+- App Store workflow now uses `MacStatsBarStoreApp` in `MacStatsBar.xcodeproj`.
+
+## License
+
+MIT. See `LICENSE`.

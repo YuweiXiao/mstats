@@ -1,0 +1,63 @@
+name: mstats
+options:
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: 5.10
+    MACOSX_DEPLOYMENT_TARGET: 14.0
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+    PRODUCT_BUNDLE_IDENTIFIER: dev.mstats.app
+packages:
+  MacStatsBarPackage:
+    path: .
+targets:
+  MacStatsBarStoreApp:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: AppStore/AppMain.swift
+    resources:
+      - path: AppStore/Resources/AppIcon.icns
+        optional: true
+    dependencies:
+      - package: MacStatsBarPackage
+        product: MacStatsBar
+    settings:
+      base:
+        PRODUCT_NAME: mstats
+        PRODUCT_MODULE_NAME: MacStatsBarStoreApp
+        INFOPLIST_FILE: AppStore/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: AppStore/MacStatsBar.entitlements
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SKIP_INSTALL: NO
+
+  MacStatsBarStoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Tests/MacStatsBarTests
+    dependencies:
+      - package: MacStatsBarPackage
+        product: MacStatsBar
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  MacStatsBarStore:
+    build:
+      targets:
+        MacStatsBarStoreApp: all
+    test:
+      targets:
+        - MacStatsBarStoreTests
+    run:
+      config: Debug
+    archive:
+      config: Release

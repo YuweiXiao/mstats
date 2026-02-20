@@ -10,6 +10,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables: Set<AnyCancellable> = []
     private var workspaceNotificationObservers: [NSObjectProtocol] = []
     private var settingsState = SettingsState.defaultValue
+    private var metricHistoryStore = MetricHistoryStore(maxSamples: 60)
 
     private let summaryRefreshInterval: TimeInterval = 2
 
@@ -45,9 +46,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
 
+                self.metricHistoryStore.append(snapshot: snapshot)
                 let preferences = self.currentSummaryPreferences()
                 statusBarController.renderSummary(snapshot: snapshot, preferences: preferences)
-                statusBarController.updatePopover(snapshot: snapshot, settings: self.settingsState)
+                statusBarController.updatePopover(
+                    snapshot: snapshot,
+                    history: self.metricHistoryStore.history,
+                    settings: self.settingsState
+                )
             }
             .store(in: &cancellables)
 
@@ -55,7 +61,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             snapshot: statsStore.currentSnapshot,
             preferences: currentSummaryPreferences()
         )
-        statusBarController.updatePopover(snapshot: statsStore.currentSnapshot, settings: settingsState)
+        metricHistoryStore.append(snapshot: statsStore.currentSnapshot)
+        statusBarController.updatePopover(
+            snapshot: statsStore.currentSnapshot,
+            history: metricHistoryStore.history,
+            settings: settingsState
+        )
         registerLifecycleObservers(for: statsStore)
         statsStore.startPolling()
     }

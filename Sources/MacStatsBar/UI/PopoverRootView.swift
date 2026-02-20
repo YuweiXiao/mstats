@@ -7,10 +7,11 @@ public struct PopoverRootView: View {
 
     public init(
         snapshot: StatsSnapshot?,
+        history: [MetricKind: [MetricHistorySample]] = [:],
         onExitRequested: @escaping () -> Void = {},
         settings: Binding<SettingsState>
     ) {
-        viewModel = PopoverViewModel(snapshot: snapshot)
+        viewModel = PopoverViewModel(snapshot: snapshot, history: history)
         self.onExitRequested = onExitRequested
         _settings = settings
     }

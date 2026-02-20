@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_NAME="MacStatsBar"
+APP_NAME="mstats"
 PRODUCT_NAME="MacStatsBarApp"
 BUILD_DIR="${ROOT_DIR}/.build/release"
 DIST_DIR="${ROOT_DIR}/dist"
@@ -62,15 +62,15 @@ cat > "${CONTENTS_DIR}/Info.plist" <<'PLIST'
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>MacStatsBar</string>
+    <string>mstats</string>
     <key>CFBundleIdentifier</key>
-    <string>dev.macstatsbar.app</string>
+    <string>dev.mstats.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleName</key>
-    <string>MacStatsBar</string>
+    <string>mstats</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
