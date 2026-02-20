@@ -9,7 +9,7 @@ This project now supports an App Store-ready Xcode app target via `xcodegen`.
 - App Store app entrypoint: `AppStore/AppMain.swift`
 - App metadata plist: `AppStore/Info.plist`
 - Sandbox entitlements (no extra permissions): `AppStore/MacStatsBar.entitlements`
-- App icon resource (from `mac_stat_icon.png`): `AppStore/Resources/AppIcon.icns`
+- App icon resource (from `images/mac_stat_icon.png`): `AppStore/Resources/AppIcon.icns`
 
 ## Prerequisites
 

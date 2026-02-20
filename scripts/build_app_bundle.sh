@@ -10,7 +10,7 @@ APP_DIR="${DIST_DIR}/${APP_NAME}.app"
 CONTENTS_DIR="${APP_DIR}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
-ICON_SOURCE_PNG="${ROOT_DIR}/mac_stat_icon.png"
+ICON_SOURCE_PNG="${ROOT_DIR}/images/mac_stat_icon.png"
 ICON_NAME="AppIcon"
 
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"

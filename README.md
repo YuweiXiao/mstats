@@ -2,7 +2,7 @@
 
 Lightweight macOS menu bar monitor for live CPU, memory, network, battery, and disk stats.
 
-<img src="demo.png" alt="mstats app preview" width="320" />
+<img src="images/demo.png" alt="mstats app preview" width="320" />
 
 ## Scope
 

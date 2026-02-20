@@ -27,7 +27,7 @@ public struct PopoverRootView: View {
             SettingsView(settings: $settings)
                 .frame(minHeight: 260)
 
-            Button("Quit MacStatsBar") {
+            Button("Quit mstats") {
                 onExitRequested()
             }
             .keyboardShortcut("q")

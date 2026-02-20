@@ -88,13 +88,13 @@ public enum SummaryFormatter {
         let upload = normalized(uploadMBps)
 
         guard download != nil || upload != nil else {
-            return "\(placeholder)↓\n\(placeholder)↑MB/s"
+            return "\(placeholder)↓MB/s\n\(placeholder)↑MB/s"
         }
 
         let unit = compactThroughputUnit(downloadMBps: download, uploadMBps: upload)
         let downText = compactThroughput(downloadMBps: download, unit: unit)
         let upText = compactThroughput(downloadMBps: upload, unit: unit)
-        return "\(downText)↓\n\(upText)↑\(unit.rawValue)"
+        return "\(downText)↓\(unit.rawValue)\n\(upText)↑\(unit.rawValue)"
     }
 
     static func compactSummaryPlaceholder() -> String {
@@ -163,7 +163,7 @@ public enum SummaryFormatter {
             normalizedValue = value / 1024
         }
 
-        return compactNumber(min(normalizedValue, 999.9))
+        return compactThroughputNumber(min(normalizedValue, 999.9))
     }
 
     private static func detailedThroughput(downloadMBps: Double?, unit: ThroughputUnit) -> String {
@@ -181,7 +181,19 @@ public enum SummaryFormatter {
             convertedValue = value / 1024
         }
 
-        return compactNumber(convertedValue)
+        return compactThroughputNumber(convertedValue)
+    }
+
+    private static func compactThroughputNumber(_ value: Double) -> String {
+        guard value.isFinite else {
+            return placeholder
+        }
+
+        if value >= 1 {
+            return safeIntegerString(value.rounded()) ?? placeholder
+        }
+
+        return compactNumber(value)
     }
 
     private static func normalized(_ value: Double?) -> Double? {

@@ -36,7 +36,7 @@ final class SummaryFormatterTests: XCTestCase {
     func testFormatNetworkFormatsDownAndUpWithArrowsAndMbps() {
         XCTAssertEqual(
             SummaryFormatter.formatNetwork(downloadMBps: 12.34, uploadMBps: 0.05),
-            "NET 12.3↓ 0.1↑ MB/s"
+            "NET 12↓ 0.1↑ MB/s"
         )
         XCTAssertEqual(
             SummaryFormatter.formatNetwork(downloadMBps: 5.0, uploadMBps: 2.0),
@@ -85,7 +85,7 @@ final class SummaryFormatterTests: XCTestCase {
         )
         XCTAssertEqual(
             SummaryFormatter.formatNetwork(downloadMBps: 12.34, uploadMBps: 0.56),
-            "NET 12.3↓ 0.6↑ MB/s"
+            "NET 12↓ 0.6↑ MB/s"
         )
     }
 
@@ -129,7 +129,7 @@ final class SummaryFormatterTests: XCTestCase {
         XCTAssertEqual(SummaryFormatter.compactPercentValue(142), "99%")
         XCTAssertEqual(
             SummaryFormatter.compactNetworkValue(downloadMBps: 142.3, uploadMBps: 120.7),
-            "142.3↓120.7↑MB/s"
+            "142↓121↑MB/s"
         )
         XCTAssertEqual(
             SummaryFormatter.compactPairValue(first: 120.5, second: 150.2, suffix: "G"),
@@ -144,7 +144,7 @@ final class SummaryFormatterTests: XCTestCase {
         )
         XCTAssertEqual(
             SummaryFormatter.compactNetworkValue(downloadMBps: 2.5, uploadMBps: 1.0),
-            "2.5↓1↑MB/s"
+            "3↓1↑MB/s"
         )
         XCTAssertEqual(
             SummaryFormatter.compactNetworkValue(downloadMBps: 2048, uploadMBps: 1024),
@@ -155,11 +155,11 @@ final class SummaryFormatterTests: XCTestCase {
     func testCompactNetworkValueMultilineUsesTwoLinesAndAdaptiveUnit() {
         XCTAssertEqual(
             SummaryFormatter.compactNetworkValueMultiline(downloadMBps: 0.5, uploadMBps: 0.25),
-            "512↓\n256↑KB/s"
+            "512↓KB/s\n256↑KB/s"
         )
         XCTAssertEqual(
             SummaryFormatter.compactNetworkValueMultiline(downloadMBps: 2.5, uploadMBps: 1.0),
-            "2.5↓\n1↑MB/s"
+            "3↓MB/s\n1↑MB/s"
         )
     }
 }

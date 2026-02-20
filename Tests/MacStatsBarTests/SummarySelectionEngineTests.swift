@@ -140,7 +140,7 @@ final class StatusBarControllerSummaryTests: XCTestCase {
 
         let text = StatusBarController.summaryText(snapshot: snapshot, preferences: preferences)
 
-        XCTAssertEqual(text, "2.1↓|23%\n0.4↑MB/s")
+        XCTAssertEqual(text, "2↓MB/s|23%\n0.4↑MB/s")
     }
 
     func testSummaryTextFallsBackWhenNoVisibleMetricsAreSelected() {
@@ -179,7 +179,7 @@ final class StatusBarControllerSummaryTests: XCTestCase {
 
         let text = StatusBarController.summaryText(snapshot: snapshot, preferences: preferences)
 
-        XCTAssertEqual(text, "2.1↓\n0.4↑MB/s")
+        XCTAssertEqual(text, "2↓MB/s\n0.4↑MB/s")
     }
 
     func testRenderSummaryUsesCustomMultilineViewForNetworkOnlyMetric() {
@@ -204,7 +204,7 @@ final class StatusBarControllerSummaryTests: XCTestCase {
         let customView = statusItem.view as? NetworkMultilineStatusItemView
         XCTAssertNotNil(customView)
         XCTAssertNil(customView?.leadingMetricText)
-        XCTAssertEqual(customView?.topLineText, "2.1↓")
+        XCTAssertEqual(customView?.topLineText, "2↓MB/s")
         XCTAssertEqual(customView?.bottomLineText, "0.4↑MB/s")
         XCTAssertEqual(customView?.isCenterAligned, true)
     }
@@ -232,7 +232,7 @@ final class StatusBarControllerSummaryTests: XCTestCase {
         let customView = statusItem.view as? NetworkMultilineStatusItemView
         XCTAssertNotNil(customView)
         XCTAssertEqual(customView?.leadingMetricText, "23%")
-        XCTAssertEqual(customView?.topLineText, "2.1↓")
+        XCTAssertEqual(customView?.topLineText, "2↓MB/s")
         XCTAssertEqual(customView?.bottomLineText, "0.4↑MB/s")
     }
 
