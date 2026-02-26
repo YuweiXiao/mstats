@@ -90,9 +90,12 @@ public struct PopoverViewModel: Equatable {
             return PopoverMetricCard(
                 kind: .memoryUsage,
                 title: "Memory",
-                text: SummaryFormatter.formatMemory(
-                    usedGB: metric?.primaryValue,
-                    totalGB: metric?.secondaryValue
+                text: stripMetricPrefix(
+                    SummaryFormatter.formatMemory(
+                        usedGB: metric?.primaryValue,
+                        totalGB: metric?.secondaryValue
+                    ),
+                    prefix: "MEM "
                 ),
                 trendSeries: singleTrendSeries(
                     label: "Used",
@@ -104,9 +107,12 @@ public struct PopoverViewModel: Equatable {
             return PopoverMetricCard(
                 kind: .networkThroughput,
                 title: "Network",
-                text: SummaryFormatter.formatNetwork(
-                    downloadMBps: metric?.primaryValue,
-                    uploadMBps: metric?.secondaryValue
+                text: stripMetricPrefix(
+                    SummaryFormatter.formatNetwork(
+                        downloadMBps: metric?.primaryValue,
+                        uploadMBps: metric?.secondaryValue
+                    ),
+                    prefix: "NET "
                 ),
                 trendSeries: dualTrendSeries(samples: history)
             )
@@ -114,7 +120,7 @@ public struct PopoverViewModel: Equatable {
             return PopoverMetricCard(
                 kind: .batteryStatus,
                 title: "Battery",
-                text: SummaryFormatter.formatBattery(metric?.primaryValue),
+                text: stripMetricPrefix(SummaryFormatter.formatBattery(metric?.primaryValue), prefix: "BAT "),
                 trendSeries: singleTrendSeries(
                     label: "Level",
                     samples: history,
@@ -125,9 +131,12 @@ public struct PopoverViewModel: Equatable {
             return PopoverMetricCard(
                 kind: .diskUsage,
                 title: "Disk",
-                text: SummaryFormatter.formatDisk(
-                    usedGB: metric?.primaryValue,
-                    totalGB: metric?.secondaryValue
+                text: stripMetricPrefix(
+                    SummaryFormatter.formatDisk(
+                        usedGB: metric?.primaryValue,
+                        totalGB: metric?.secondaryValue
+                    ),
+                    prefix: "DSK "
                 ),
                 trendSeries: singleTrendSeries(
                     label: "Used",
@@ -136,6 +145,13 @@ public struct PopoverViewModel: Equatable {
                 )
             )
         }
+    }
+
+    private static func stripMetricPrefix(_ formatted: String, prefix: String) -> String {
+        if formatted.hasPrefix(prefix) {
+            return String(formatted.dropFirst(prefix.count))
+        }
+        return formatted
     }
 
     private static func singleTrendSeries(
@@ -166,11 +182,7 @@ public struct PopoverViewModel: Equatable {
     }
 
     private static func cpuCardText(_ percent: Double?) -> String {
-        let formatted = SummaryFormatter.formatCPU(percent)
-        if formatted.hasPrefix("CPU ") {
-            return String(formatted.dropFirst(4))
-        }
-        return formatted
+        stripMetricPrefix(SummaryFormatter.formatCPU(percent), prefix: "CPU ")
     }
 
     private static func makeTopCPUProcesses(from processUsages: [ProcessCPUUsage]) -> [PopoverTopCPUProcess] {

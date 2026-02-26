@@ -1,10 +1,13 @@
 import Foundation
 import SwiftUI
 
-public struct CPUCompositeCardView: View {
-    private static let topProcessPanelWidth: CGFloat = 132
-    private static let topProcessPanelHeight: CGFloat = 172
+enum CPUCompositeCardLayout {
+    static let processPanelWidth: CGFloat = 132
+    static let processPanelHeight: CGFloat = 172
+    static let cpuPanelHeight: CGFloat = processPanelHeight
+}
 
+public struct CPUCompositeCardView: View {
     public let card: PopoverMetricCard
     public let topProcesses: [PopoverTopCPUProcess]
 
@@ -15,11 +18,15 @@ public struct CPUCompositeCardView: View {
 
     public var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            CPUCardView(card: card, minimumCardHeight: Self.topProcessPanelHeight)
+            CPUCardView(card: card, fixedCardHeight: CPUCompositeCardLayout.cpuPanelHeight)
                 .frame(maxWidth: .infinity, alignment: .top)
 
             processListPanel
-                .frame(width: Self.topProcessPanelWidth, height: Self.topProcessPanelHeight, alignment: .topLeading)
+                .frame(
+                    width: CPUCompositeCardLayout.processPanelWidth,
+                    height: CPUCompositeCardLayout.processPanelHeight,
+                    alignment: .topLeading
+                )
         }
     }
 

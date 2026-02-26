@@ -8,6 +8,6 @@ public struct BatteryCardView: View {
     }
 
     public var body: some View {
-        MetricCardView(card: card, accentColor: .green)
+        MetricCardView(card: card, accentColor: .green, headerLayout: .inline)
     }
 }

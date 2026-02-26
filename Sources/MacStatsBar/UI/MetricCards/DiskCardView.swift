@@ -8,6 +8,6 @@ public struct DiskCardView: View {
     }
 
     public var body: some View {
-        MetricCardView(card: card, accentColor: .orange)
+        MetricCardView(card: card, accentColor: .orange, headerLayout: .inline)
     }
 }

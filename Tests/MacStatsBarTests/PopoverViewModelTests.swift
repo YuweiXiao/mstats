@@ -27,10 +27,10 @@ final class PopoverViewModelTests: XCTestCase {
             viewModel.cards.map(\.text),
             [
                 "24%",
-                "MEM 14.2/32 GB",
-                "NET 12↓ 0.1↑ MB/s",
-                "BAT 87%",
-                "DSK 256.1/512 GB"
+                "14.2/32 GB",
+                "12↓ 0.1↑ MB/s",
+                "87%",
+                "256.1/512 GB"
             ]
         )
     }
@@ -75,10 +75,10 @@ final class PopoverViewModelTests: XCTestCase {
             viewModel.cards.map(\.text),
             [
                 "--",
-                "MEM --/-- GB",
-                "NET --↓ --↑ MB/s",
-                "BAT --",
-                "DSK --/-- GB"
+                "--/-- GB",
+                "--↓ --↑ MB/s",
+                "--",
+                "--/-- GB"
             ]
         )
     }
@@ -96,10 +96,10 @@ final class PopoverViewModelTests: XCTestCase {
             viewModel.cards.map(\.text),
             [
                 "--",
-                "MEM --/-- GB",
-                "NET --↓ --↑ MB/s",
-                "BAT --",
-                "DSK --/-- GB"
+                "--/-- GB",
+                "--↓ --↑ MB/s",
+                "--",
+                "--/-- GB"
             ]
         )
     }
@@ -212,5 +212,9 @@ final class PopoverViewModelTests: XCTestCase {
         let view = CPUCompositeCardView(card: card, topProcesses: [])
 
         XCTAssertNotNil(view)
+    }
+
+    func testCPUCompositeCardLayoutKeepsCPUAndProcessPanelsSameHeight() {
+        XCTAssertEqual(CPUCompositeCardLayout.cpuPanelHeight, CPUCompositeCardLayout.processPanelHeight)
     }
 }

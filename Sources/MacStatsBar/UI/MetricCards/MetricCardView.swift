@@ -28,14 +28,14 @@ public struct MetricCardView: View {
     private let sparklineStyle: MetricSparklineStyle
     private let sparklineHeight: CGFloat
     private let headerLayout: HeaderLayout
-    private let minimumCardHeight: CGFloat?
+    private let fixedCardHeight: CGFloat?
 
     public init(
         card: PopoverMetricCard,
         accentColor: Color = .accentColor,
         sparklineHeight: CGFloat? = nil,
         headerLayout: HeaderLayout = .stacked,
-        minimumCardHeight: CGFloat? = nil
+        fixedCardHeight: CGFloat? = nil
     ) {
         let sparklineStyle = MetricSparklineStyle.forMetric(card.kind)
         self.card = card
@@ -43,13 +43,13 @@ public struct MetricCardView: View {
         self.sparklineStyle = sparklineStyle
         self.sparklineHeight = sparklineHeight ?? sparklineStyle.plotHeight
         self.headerLayout = headerLayout
-        self.minimumCardHeight = minimumCardHeight
+        self.fixedCardHeight = fixedCardHeight
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             headerView
-            if minimumCardHeight != nil, !card.trendSeries.isEmpty {
+            if fixedCardHeight != nil, !card.trendSeries.isEmpty {
                 Spacer(minLength: 0)
             }
             if !card.trendSeries.isEmpty {
@@ -63,7 +63,12 @@ public struct MetricCardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .frame(maxWidth: .infinity, minHeight: minimumCardHeight, alignment: .topLeading)
+        .frame(
+            maxWidth: .infinity,
+            minHeight: fixedCardHeight,
+            maxHeight: fixedCardHeight,
+            alignment: .topLeading
+        )
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(accentColor.opacity(0.12))
