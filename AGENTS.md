@@ -34,6 +34,7 @@ Regenerates `MacStatsBar.xcodeproj` from `project.yml` for App Store workflow.
 - For UI-visible changes, include a deterministic assertion in tests when possible.
 
 ## Commit & Pull Request Guidelines
+- Default branch: `main` (target PRs and branch comparisons against `main` unless explicitly told otherwise).
 - Follow existing commit style: conventional prefixes such as `feat:`, `fix:`, `docs:`, `build:`.
 - Use imperative, scoped messages (example: `feat: compact network formatting in status bar`).
 - PRs should include:
