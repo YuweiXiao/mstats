@@ -35,6 +35,25 @@ final class SystemCollectorMappingTests: XCTestCase {
         XCTAssertEqual(snapshot.metrics, [:])
     }
 
+    func testCollectIncludesProcessCPUUsagesFromProcessCollector() async throws {
+        let processUsages = [
+            ProcessCPUUsage(processName: "Xcode", cpuUsagePercent: 21.5),
+            ProcessCPUUsage(processName: "Chrome Helper", cpuUsagePercent: 7.8)
+        ]
+        let collector = SystemStatsCollector(
+            cpu: FailingCPUCollector(),
+            memory: FailingMemoryCollector(),
+            network: FailingNetworkCollector(),
+            battery: FailingBatteryCollector(),
+            disk: FailingDiskCollector(),
+            processCPU: StubProcessCPUCollector(value: processUsages)
+        )
+
+        let snapshot = try await collector.collect()
+
+        XCTAssertEqual(snapshot.processCPUUsages, processUsages)
+    }
+
     func testCPUCollectorComputesUsageFromTickDeltasAndSkipsFirstSample() {
         var samples: [(user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)] = [
             (100, 50, 850, 0),
@@ -67,6 +86,28 @@ final class SystemCollectorMappingTests: XCTestCase {
         XCTAssertNil(collector.collectCPUUsage())
     }
 
+    func testProcessCPUCollectorNormalizesPerProcessPercentByLogicalCPUCount() {
+        let collector = ProcessCPUCollector(
+            logicalCPUCountProvider: { 8 },
+            commandRunner: { _, _ in
+                """
+                80.0 Xcode
+                20.0 Google Chrome Helper
+                0.4 mds
+                """
+            }
+        )
+
+        let usages = collector.collectProcessCPUUsages()
+
+        XCTAssertEqual(usages.count, 3)
+        XCTAssertEqual(usages[0].processName, "Xcode")
+        XCTAssertEqual(usages[0].cpuUsagePercent, 10.0, accuracy: 0.0001)
+        XCTAssertEqual(usages[1].processName, "Google Chrome Helper")
+        XCTAssertEqual(usages[1].cpuUsagePercent, 2.5, accuracy: 0.0001)
+        XCTAssertEqual(usages[2].cpuUsagePercent, 0.05, accuracy: 0.0001)
+    }
+
     func testDiskCollectorClampsAvailableCapacityIntoBoundsBeforeDerivingUsed() {
         let gibibyte = Int64(1_073_741_824)
 
@@ -91,6 +132,14 @@ final class SystemCollectorMappingTests: XCTestCase {
 
 private struct FailingCPUCollector: CPUCollecting {
     func collectCPUUsage() -> MetricValue? { nil }
+}
+
+private struct StubProcessCPUCollector: ProcessCPUCollecting {
+    let value: [ProcessCPUUsage]
+
+    func collectProcessCPUUsages() -> [ProcessCPUUsage] {
+        value
+    }
 }
 
 private struct StubMemoryCollector: MemoryCollecting {

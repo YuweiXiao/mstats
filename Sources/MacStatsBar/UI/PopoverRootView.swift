@@ -1,6 +1,9 @@
+import Foundation
 import SwiftUI
 
 public struct PopoverRootView: View {
+    private static let contentWidth: CGFloat = 420
+
     private let viewModel: PopoverViewModel
     private let onExitRequested: () -> Void
     @Binding private var settings: SettingsState
@@ -33,14 +36,14 @@ public struct PopoverRootView: View {
             .keyboardShortcut("q")
         }
         .padding(12)
-        .frame(width: 340)
+        .frame(width: Self.contentWidth)
     }
 
     @ViewBuilder
     private func cardView(for card: PopoverMetricCard) -> some View {
         switch card.kind {
         case .cpuUsage:
-            CPUCardView(card: card)
+            CPUCompositeCardView(card: card, topProcesses: viewModel.topCPUProcesses)
         case .memoryUsage:
             MemoryCardView(card: card)
         case .networkThroughput:

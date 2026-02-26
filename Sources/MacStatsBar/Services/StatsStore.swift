@@ -222,7 +222,11 @@ public final class StatsStore: ObservableObject {
             secondaryValue: upload,
             unit: unit
         )
-        return StatsSnapshot(timestamp: snapshot.timestamp, metrics: metrics)
+        return StatsSnapshot(
+            timestamp: snapshot.timestamp,
+            metrics: metrics,
+            processCPUUsages: snapshot.processCPUUsages
+        )
     }
 }
 

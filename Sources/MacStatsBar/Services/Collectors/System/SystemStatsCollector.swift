@@ -6,19 +6,22 @@ public struct SystemStatsCollector: StatsCollecting {
     private let networkCollector: any NetworkCollecting
     private let batteryCollector: any BatteryCollecting
     private let diskCollector: any DiskCollecting
+    private let processCPUCollector: any ProcessCPUCollecting
 
     public init(
         cpu: any CPUCollecting = CPUCollector(),
         memory: any MemoryCollecting = MemoryCollector(),
         network: any NetworkCollecting = NetworkCollector(),
         battery: any BatteryCollecting = BatteryCollector(),
-        disk: any DiskCollecting = DiskCollector()
+        disk: any DiskCollecting = DiskCollector(),
+        processCPU: any ProcessCPUCollecting = ProcessCPUCollector()
     ) {
         self.cpuCollector = cpu
         self.memoryCollector = memory
         self.networkCollector = network
         self.batteryCollector = battery
         self.diskCollector = disk
+        processCPUCollector = processCPU
     }
 
     public func collect() async throws -> StatsSnapshot {
@@ -40,6 +43,10 @@ public struct SystemStatsCollector: StatsCollecting {
             metrics[.diskUsage] = disk
         }
 
-        return StatsSnapshot(timestamp: Date(), metrics: metrics)
+        return StatsSnapshot(
+            timestamp: Date(),
+            metrics: metrics,
+            processCPUUsages: processCPUCollector.collectProcessCPUUsages()
+        )
     }
 }

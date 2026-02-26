@@ -26,7 +26,7 @@ final class PopoverViewModelTests: XCTestCase {
         XCTAssertEqual(
             viewModel.cards.map(\.text),
             [
-                "CPU 24%",
+                "24%",
                 "MEM 14.2/32 GB",
                 "NET 12↓ 0.1↑ MB/s",
                 "BAT 87%",
@@ -74,7 +74,7 @@ final class PopoverViewModelTests: XCTestCase {
         XCTAssertEqual(
             viewModel.cards.map(\.text),
             [
-                "CPU --",
+                "--",
                 "MEM --/-- GB",
                 "NET --↓ --↑ MB/s",
                 "BAT --",
@@ -95,13 +95,80 @@ final class PopoverViewModelTests: XCTestCase {
         XCTAssertEqual(
             viewModel.cards.map(\.text),
             [
-                "CPU --",
+                "--",
                 "MEM --/-- GB",
                 "NET --↓ --↑ MB/s",
                 "BAT --",
                 "DSK --/-- GB"
             ]
         )
+    }
+
+    func testBuildShowsTopProcessesSortedByCPUWithOnePercentMinimumAndLimitTen() throws {
+        let snapshot = StatsSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_000),
+            metrics: [
+                .cpuUsage: MetricValue(primaryValue: 42, secondaryValue: nil, unit: .percent)
+            ],
+            processCPUUsages: [
+                ProcessCPUUsage(processName: "Finder", cpuUsagePercent: 0.9),
+                ProcessCPUUsage(processName: "Chrome Helper", cpuUsagePercent: 12.8),
+                ProcessCPUUsage(processName: "WindowServer", cpuUsagePercent: 7.2),
+                ProcessCPUUsage(processName: "Xcode", cpuUsagePercent: 41.3),
+                ProcessCPUUsage(processName: "mds", cpuUsagePercent: 1.0),
+                ProcessCPUUsage(processName: "node", cpuUsagePercent: 1.4),
+                ProcessCPUUsage(processName: "Slack", cpuUsagePercent: 4.4),
+                ProcessCPUUsage(processName: "Safari", cpuUsagePercent: 5.0),
+                ProcessCPUUsage(processName: "kernel_task", cpuUsagePercent: 9.7),
+                ProcessCPUUsage(processName: "Spotify", cpuUsagePercent: 3.1),
+                ProcessCPUUsage(processName: "Code", cpuUsagePercent: 2.2),
+                ProcessCPUUsage(processName: "Photos", cpuUsagePercent: 1.9),
+                ProcessCPUUsage(processName: "backupd", cpuUsagePercent: 0.4)
+            ]
+        )
+
+        let viewModel = PopoverViewModel(snapshot: snapshot)
+
+        XCTAssertEqual(viewModel.topCPUProcesses.count, 10)
+        XCTAssertEqual(
+            viewModel.topCPUProcesses.map(\.name),
+            [
+                "Xcode",
+                "Chrome Helper",
+                "kernel_task",
+                "WindowServer",
+                "Safari",
+                "Slack",
+                "Spotify",
+                "Code",
+                "Photos",
+                "node"
+            ]
+        )
+        let lastCPU = try XCTUnwrap(viewModel.topCPUProcesses.last?.cpuUsagePercent)
+        XCTAssertEqual(lastCPU, 1.4, accuracy: 0.0001)
+        XCTAssertTrue(viewModel.topCPUProcesses.allSatisfy { $0.cpuUsagePercent >= 1.0 })
+    }
+
+    func testBuildAssignsUniqueTopProcessIDsWhenNamesRepeat() {
+        let snapshot = StatsSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_706_000_000),
+            metrics: [
+                .cpuUsage: MetricValue(primaryValue: 42, secondaryValue: nil, unit: .percent)
+            ],
+            processCPUUsages: [
+                ProcessCPUUsage(processName: "Chrome Helper", cpuUsagePercent: 5.0),
+                ProcessCPUUsage(processName: "Chrome Helper", cpuUsagePercent: 5.0),
+                ProcessCPUUsage(processName: "WindowServer", cpuUsagePercent: 4.0),
+                ProcessCPUUsage(processName: "Finder", cpuUsagePercent: 0.5)
+            ]
+        )
+
+        let viewModel = PopoverViewModel(snapshot: snapshot)
+
+        XCTAssertEqual(viewModel.topCPUProcesses.map(\.name), ["Chrome Helper", "Chrome Helper", "WindowServer"])
+        XCTAssertEqual(viewModel.topCPUProcesses.count, 3)
+        XCTAssertEqual(Set(viewModel.topCPUProcesses.map(\.id)).count, 3)
     }
 
     func testSettingsStateUpdateSummaryMetricSwapsDuplicateSelectionToPreserveUniqueOrder() {
@@ -138,5 +205,12 @@ final class PopoverViewModelTests: XCTestCase {
         let rootView = PopoverRootView(snapshot: nil, settings: .constant(.defaultValue))
 
         XCTAssertNotNil(rootView)
+    }
+
+    func testCPUCompositeCardViewCanBeInstantiatedWithEmptyProcessList() {
+        let card = PopoverMetricCard(kind: .cpuUsage, title: "CPU", text: "CPU --")
+        let view = CPUCompositeCardView(card: card, topProcesses: [])
+
+        XCTAssertNotNil(view)
     }
 }

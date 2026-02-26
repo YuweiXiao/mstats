@@ -19,4 +19,39 @@ final class MetricSparklineDataBuilderTests: XCTestCase {
     func testBuildPointsReturnsEmptyForNoSeries() {
         XCTAssertEqual(MetricSparklineDataBuilder.buildPoints(from: []), [])
     }
+
+    func testSparklineStyleForCPUUsesFixedPercentDomainAndReferenceLines() {
+        let style = MetricSparklineStyle.forMetric(.cpuUsage)
+
+        XCTAssertEqual(style.yDomain, 0...100)
+        XCTAssertTrue(style.showsReferenceLines)
+    }
+
+    func testSparklineStyleForCPUUsesNonOvershootingInterpolationAndTallerPlotHeight() {
+        let style = MetricSparklineStyle.forMetric(.cpuUsage)
+
+        XCTAssertEqual(style.interpolation, .monotone)
+        XCTAssertGreaterThan(style.plotHeight, MetricSparklineStyle.defaultCard.plotHeight)
+    }
+
+    func testSparklineStyleForCPUUsesExactPercentReferenceAnchors() {
+        let style = MetricSparklineStyle.forMetric(.cpuUsage)
+
+        XCTAssertEqual(style.referenceLineValues, [0, 50, 100])
+    }
+
+    func testSparklineStyleAreaFillIsEnabledOnlyForCPU() {
+        let cpuStyle = MetricSparklineStyle.forMetric(.cpuUsage)
+
+        XCTAssertTrue(cpuStyle.showsAreaFill)
+        XCTAssertFalse(MetricSparklineStyle.defaultCard.showsAreaFill)
+    }
+
+    func testSparklineStyleForNonCPUMetricsKeepsDefaultValues() {
+        let nonCPUKinds = MetricKind.allCases.filter { $0 != .cpuUsage }
+
+        for kind in nonCPUKinds {
+            XCTAssertEqual(MetricSparklineStyle.forMetric(kind), .defaultCard, "Expected default style for \(kind)")
+        }
+    }
 }
