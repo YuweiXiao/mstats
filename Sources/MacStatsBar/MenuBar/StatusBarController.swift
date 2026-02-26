@@ -22,9 +22,13 @@ public final class StatusBarController: NSObject {
     private let popover: NSPopover
     private let onSettingsChanged: (SettingsState) -> Void
     private let appTerminator: any ApplicationTerminating
+    private let notificationCenter: NotificationCenter
+    private let workspaceNotificationCenter: NotificationCenter
+    private let externalInteractionObserverRemover: (Any) -> Void
     private var popoverSnapshot: StatsSnapshot?
     private var popoverHistory: [MetricKind: [MetricHistorySample]] = [:]
     private var popoverSettings: SettingsState
+    private var externalInteractionObserverToken: Any?
     private lazy var networkMultilineView: NetworkMultilineStatusItemView = {
         let view = NetworkMultilineStatusItemView(
             frame: NSRect(
@@ -45,21 +49,76 @@ public final class StatusBarController: NSObject {
         initialSettings: SettingsState = .defaultValue,
         onSettingsChanged: @escaping (SettingsState) -> Void = { _ in },
         popover: NSPopover = NSPopover(),
-        appTerminator: any ApplicationTerminating = NSApplication.shared
+        appTerminator: any ApplicationTerminating = NSApplication.shared,
+        notificationCenter: NotificationCenter = .default,
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
+        externalInteractionObserverRegistrar: @escaping (@escaping () -> Void) -> Any? = { handler in
+            NSEvent.addGlobalMonitorForEvents(
+                matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+            ) { _ in
+                handler()
+            }
+        },
+        externalInteractionObserverRemover: @escaping (Any) -> Void = { monitor in
+            NSEvent.removeMonitor(monitor)
+        }
     ) {
         self.popover = popover
         self.onSettingsChanged = onSettingsChanged
         self.appTerminator = appTerminator
+        self.notificationCenter = notificationCenter
+        self.workspaceNotificationCenter = workspaceNotificationCenter
+        self.externalInteractionObserverRemover = externalInteractionObserverRemover
         self.popoverSettings = initialSettings
         self.statusItem = statusItem
         super.init()
 
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(handleApplicationDidResignActive(_:)),
+            name: NSApplication.didResignActiveNotification,
+            object: nil
+        )
+        workspaceNotificationCenter.addObserver(
+            self,
+            selector: #selector(handleWorkspaceDidActivateApplication(_:)),
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
+        externalInteractionObserverToken = externalInteractionObserverRegistrar { [weak self] in
+            guard let self else {
+                return
+            }
+            if Thread.isMainThread {
+                self.closePopoverIfShown()
+            } else {
+                DispatchQueue.main.async { [weak self] in
+                    self?.closePopoverIfShown()
+                }
+            }
+        }
         configureStatusButton()
 
         self.popover.behavior = Self.popoverBehavior(for: initialSettings.popoverPinBehavior)
         self.popover.animates = true
         self.popover.contentSize = NSSize(width: 340, height: 420)
         refreshPopoverContent()
+    }
+
+    deinit {
+        notificationCenter.removeObserver(
+            self,
+            name: NSApplication.didResignActiveNotification,
+            object: nil
+        )
+        workspaceNotificationCenter.removeObserver(
+            self,
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
+        if let externalInteractionObserverToken {
+            externalInteractionObserverRemover(externalInteractionObserverToken)
+        }
     }
 
     func renderSummary(snapshot: StatsSnapshot?, preferences: UserPreferences) {
@@ -336,5 +395,23 @@ public final class StatusBarController: NSObject {
     func handleExitRequested() {
         popover.performClose(nil)
         appTerminator.terminate(nil)
+    }
+
+    @objc
+    private func handleApplicationDidResignActive(_ notification: Notification) {
+        closePopoverIfShown()
+    }
+
+    @objc
+    private func handleWorkspaceDidActivateApplication(_ notification: Notification) {
+        closePopoverIfShown()
+    }
+
+    private func closePopoverIfShown() {
+        guard popover.isShown else {
+            return
+        }
+
+        popover.performClose(nil)
     }
 }

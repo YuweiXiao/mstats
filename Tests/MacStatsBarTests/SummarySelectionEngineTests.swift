@@ -182,6 +182,76 @@ final class StatusBarControllerSummaryTests: XCTestCase {
         XCTAssertEqual(text, "2↓MB/s\n0.4↑MB/s")
     }
 
+    func testShownPopoverClosesWhenApplicationResignsActive() {
+        _ = NSApplication.shared
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        defer { NSStatusBar.system.removeStatusItem(statusItem) }
+
+        let popover = TestPopover()
+        _ = StatusBarController(statusItem: statusItem, popover: popover)
+
+        statusItem.button?.performClick(nil)
+        XCTAssertEqual(popover.showCallCount, 1)
+        XCTAssertTrue(popover.fakeShown)
+
+        NotificationCenter.default.post(name: NSApplication.didResignActiveNotification, object: nil)
+
+        XCTAssertEqual(popover.closeCallCount, 1)
+        XCTAssertFalse(popover.fakeShown)
+    }
+
+    func testShownPopoverClosesWhenWorkspaceActivatesAnotherApplication() {
+        _ = NSApplication.shared
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        defer { NSStatusBar.system.removeStatusItem(statusItem) }
+
+        let popover = TestPopover()
+        let appNotifications = NotificationCenter()
+        let workspaceNotifications = NotificationCenter()
+        _ = StatusBarController(
+            statusItem: statusItem,
+            popover: popover,
+            notificationCenter: appNotifications,
+            workspaceNotificationCenter: workspaceNotifications
+        )
+
+        statusItem.button?.performClick(nil)
+        XCTAssertEqual(popover.showCallCount, 1)
+        XCTAssertTrue(popover.fakeShown)
+
+        workspaceNotifications.post(name: NSWorkspace.didActivateApplicationNotification, object: nil)
+
+        XCTAssertEqual(popover.closeCallCount, 1)
+        XCTAssertFalse(popover.fakeShown)
+    }
+
+    func testShownPopoverClosesWhenExternalInteractionIsObserved() {
+        _ = NSApplication.shared
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        defer { NSStatusBar.system.removeStatusItem(statusItem) }
+
+        let popover = TestPopover()
+        let appNotifications = NotificationCenter()
+        let workspaceNotifications = NotificationCenter()
+        let externalInteractionObserver = TestExternalInteractionObserver()
+        _ = StatusBarController(
+            statusItem: statusItem,
+            popover: popover,
+            notificationCenter: appNotifications,
+            workspaceNotificationCenter: workspaceNotifications,
+            externalInteractionObserverRegistrar: externalInteractionObserver.register,
+            externalInteractionObserverRemover: externalInteractionObserver.remove
+        )
+
+        statusItem.button?.performClick(nil)
+        XCTAssertTrue(popover.fakeShown)
+
+        externalInteractionObserver.fire()
+
+        XCTAssertEqual(popover.closeCallCount, 1)
+        XCTAssertFalse(popover.fakeShown)
+    }
+
     func testRenderSummaryUsesCustomMultilineViewForNetworkOnlyMetric() {
         _ = NSApplication.shared
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -279,5 +349,45 @@ private final class TestApplicationTerminator: ApplicationTerminating {
 
     func terminate(_ sender: Any?) {
         terminateCallCount += 1
+    }
+}
+
+private final class TestPopover: NSPopover {
+    private(set) var showCallCount = 0
+    private(set) var closeCallCount = 0
+    var fakeShown = false
+
+    override var isShown: Bool { fakeShown }
+
+    override func show(
+        relativeTo positioningRect: NSRect,
+        of positioningView: NSView,
+        preferredEdge: NSRectEdge
+    ) {
+        showCallCount += 1
+        fakeShown = true
+    }
+
+    override func performClose(_ sender: Any?) {
+        closeCallCount += 1
+        fakeShown = false
+    }
+}
+
+private final class TestExternalInteractionObserver {
+    private var handler: (() -> Void)?
+    private var token = NSObject()
+
+    func register(_ handler: @escaping () -> Void) -> Any? {
+        self.handler = handler
+        return token
+    }
+
+    func remove(_ token: Any) {
+        _ = token
+    }
+
+    func fire() {
+        handler?()
     }
 }
