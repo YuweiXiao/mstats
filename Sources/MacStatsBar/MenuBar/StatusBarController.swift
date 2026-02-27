@@ -101,7 +101,7 @@ public final class StatusBarController: NSObject {
 
         self.popover.behavior = Self.popoverBehavior(for: initialSettings.popoverPinBehavior)
         self.popover.animates = true
-        self.popover.contentSize = NSSize(width: 420, height: 920)
+        self.popover.contentSize = NSSize(width: 420, height: 860)
         refreshPopoverContent()
     }
 

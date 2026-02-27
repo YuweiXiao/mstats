@@ -12,7 +12,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsState = SettingsState.defaultValue
     private var metricHistoryStore = MetricHistoryStore(maxSamples: 60)
 
-    private let summaryRefreshInterval: TimeInterval = 2
+    private let summaryRefreshInterval: TimeInterval = 5
 
     public override init() {
         loginItemService = LoginItemService()

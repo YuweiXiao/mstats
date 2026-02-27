@@ -32,7 +32,7 @@ public struct SettingsState: Equatable {
             .diskUsage
         ],
         showSecondaryMetric: true,
-        refreshInterval: 2,
+        refreshInterval: 5,
         launchAtLoginEnabled: false,
         popoverPinBehavior: .autoClose
     )
@@ -109,8 +109,6 @@ public struct SettingsState: Equatable {
 public struct SettingsView: View {
     @Binding private var settings: SettingsState
 
-    private static let refreshIntervals: [TimeInterval] = [1, 2, 5, 10]
-
     public init(settings: Binding<SettingsState>) {
         _settings = settings
     }
@@ -135,23 +133,7 @@ public struct SettingsView: View {
                     }
                 }
             }
-
-            Section("Updates") {
-                Picker("Refresh", selection: $settings.refreshInterval) {
-                    ForEach(Self.refreshIntervals, id: \.self) { interval in
-                        Text("\(Int(interval))s").tag(interval)
-                    }
-                }
-
-                Toggle("Launch at Login", isOn: $settings.launchAtLoginEnabled)
-
-                Picker("Popover", selection: $settings.popoverPinBehavior) {
-                    ForEach(SettingsState.PopoverPinBehavior.allCases) { behavior in
-                        Text(behavior.label).tag(behavior)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
+            Toggle("Launch at Login", isOn: $settings.launchAtLoginEnabled)
         }
     }
 

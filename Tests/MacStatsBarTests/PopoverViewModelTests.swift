@@ -217,4 +217,9 @@ final class PopoverViewModelTests: XCTestCase {
     func testCPUCompositeCardLayoutKeepsCPUAndProcessPanelsSameHeight() {
         XCTAssertEqual(CPUCompositeCardLayout.cpuPanelHeight, CPUCompositeCardLayout.processPanelHeight)
     }
+
+    func testCPUCompositeCardLayoutProcessPanelHeightFitsTenRows() {
+        XCTAssertEqual(CPUCompositeCardLayout.maxProcessRows, 10)
+        XCTAssertEqual(CPUCompositeCardLayout.processPanelHeight, CPUCompositeCardLayout.requiredProcessPanelHeight)
+    }
 }

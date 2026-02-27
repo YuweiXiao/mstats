@@ -28,7 +28,6 @@ public struct PopoverRootView: View {
             Divider()
 
             SettingsView(settings: $settings)
-                .frame(minHeight: 260)
 
             Button("Quit mstats") {
                 onExitRequested()

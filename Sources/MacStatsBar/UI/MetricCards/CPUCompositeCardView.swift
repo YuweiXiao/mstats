@@ -3,8 +3,18 @@ import SwiftUI
 
 enum CPUCompositeCardLayout {
     static let processPanelWidth: CGFloat = 132
-    static let processPanelHeight: CGFloat = 172
+    static let maxProcessRows = 10
+    static let processRowHeight: CGFloat = 13
+    static let processRowSpacing: CGFloat = 6
+    static let processPanelVerticalPadding: CGFloat = 10
+    static let processPanelHeight: CGFloat = requiredProcessPanelHeight
     static let cpuPanelHeight: CGFloat = processPanelHeight
+
+    static var requiredProcessPanelHeight: CGFloat {
+        let rowsHeight = CGFloat(maxProcessRows) * processRowHeight
+        let spacingHeight = CGFloat(max(0, maxProcessRows - 1)) * processRowSpacing
+        return (processPanelVerticalPadding * 2) + rowsHeight + spacingHeight
+    }
 }
 
 public struct CPUCompositeCardView: View {
@@ -22,17 +32,12 @@ public struct CPUCompositeCardView: View {
                 .frame(maxWidth: .infinity, alignment: .top)
 
             processListPanel
-                .frame(
-                    width: CPUCompositeCardLayout.processPanelWidth,
-                    height: CPUCompositeCardLayout.processPanelHeight,
-                    alignment: .topLeading
-                )
         }
     }
 
     private var processListPanel: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ForEach(topProcesses) { process in
+        VStack(alignment: .leading, spacing: CPUCompositeCardLayout.processRowSpacing) {
+            ForEach(topProcesses.prefix(CPUCompositeCardLayout.maxProcessRows)) { process in
                 HStack(spacing: 6) {
                     Text(process.name)
                         .lineLimit(1)
@@ -43,12 +48,20 @@ public struct CPUCompositeCardView: View {
                         .foregroundStyle(.secondary)
                 }
                 .font(.caption2)
+                .frame(height: CPUCompositeCardLayout.processRowHeight, alignment: .leading)
             }
 
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(10)
+        .padding(.vertical, CPUCompositeCardLayout.processPanelVerticalPadding)
+        .padding(.horizontal, 10)
+        .frame(
+            width: CPUCompositeCardLayout.processPanelWidth,
+            height: CPUCompositeCardLayout.processPanelHeight,
+            alignment: .topLeading
+        )
+        .clipped()
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color.red.opacity(0.08))
