@@ -7,7 +7,7 @@ public protocol ApplicationTerminating {
 
 extension NSApplication: ApplicationTerminating {}
 
-public final class StatusBarController: NSObject {
+public final class StatusBarController: NSObject, NSPopoverDelegate {
     private static let fallbackSummaryText = "--"
     private static let menuBarMaxVisibleMetrics = 2
     private static let singleMetricMinLength: CGFloat = 32
@@ -21,6 +21,7 @@ public final class StatusBarController: NSObject {
     private let statusItem: NSStatusItem
     private let popover: NSPopover
     private let onSettingsChanged: (SettingsState) -> Void
+    private let onPopoverVisibilityChanged: (Bool) -> Void
     private let appTerminator: any ApplicationTerminating
     private let notificationCenter: NotificationCenter
     private let workspaceNotificationCenter: NotificationCenter
@@ -48,6 +49,7 @@ public final class StatusBarController: NSObject {
         statusItem: NSStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength),
         initialSettings: SettingsState = .defaultValue,
         onSettingsChanged: @escaping (SettingsState) -> Void = { _ in },
+        onPopoverVisibilityChanged: @escaping (Bool) -> Void = { _ in },
         popover: NSPopover = NSPopover(),
         appTerminator: any ApplicationTerminating = NSApplication.shared,
         notificationCenter: NotificationCenter = .default,
@@ -65,6 +67,7 @@ public final class StatusBarController: NSObject {
     ) {
         self.popover = popover
         self.onSettingsChanged = onSettingsChanged
+        self.onPopoverVisibilityChanged = onPopoverVisibilityChanged
         self.appTerminator = appTerminator
         self.notificationCenter = notificationCenter
         self.workspaceNotificationCenter = workspaceNotificationCenter
@@ -100,6 +103,7 @@ public final class StatusBarController: NSObject {
         configureStatusButton()
 
         self.popover.behavior = Self.popoverBehavior(for: initialSettings.popoverPinBehavior)
+        self.popover.delegate = self
         self.popover.animates = true
         self.popover.contentSize = NSSize(width: 420, height: 860)
         refreshPopoverContent()
@@ -413,5 +417,13 @@ public final class StatusBarController: NSObject {
         }
 
         popover.performClose(nil)
+    }
+
+    public func popoverDidShow(_ notification: Notification) {
+        onPopoverVisibilityChanged(true)
+    }
+
+    public func popoverDidClose(_ notification: Notification) {
+        onPopoverVisibilityChanged(false)
     }
 }

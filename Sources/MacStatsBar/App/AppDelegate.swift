@@ -12,7 +12,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsState = SettingsState.defaultValue
     private var metricHistoryStore = MetricHistoryStore(maxSamples: 60)
 
-    private let summaryRefreshInterval: TimeInterval = 5
+    private let backgroundRefreshInterval: TimeInterval = 3
+    private let detailPopoverRefreshInterval: TimeInterval = 1
 
     public override init() {
         loginItemService = LoginItemService()
@@ -30,13 +31,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             initialSettings: settingsState,
             onSettingsChanged: { [weak self] settings in
                 self?.handleSettingsChanged(settings)
+            },
+            onPopoverVisibilityChanged: { [weak self] isShown in
+                self?.handlePopoverVisibilityChanged(isShown)
             }
         )
         self.statusBarController = statusBarController
 
         let statsStore = StatsStore(
             collector: SystemStatsCollector(),
-            refreshInterval: summaryRefreshInterval
+            refreshInterval: backgroundRefreshInterval
         )
         self.statsStore = statsStore
 
@@ -115,7 +119,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         return SettingsState(
             summaryMetricOrder: savedPreferences.summaryMetricOrder,
             showSecondaryMetric: showSecondaryMetric,
-            refreshInterval: summaryRefreshInterval,
+            refreshInterval: backgroundRefreshInterval,
             launchAtLoginEnabled: loginItemService.isEnabled,
             popoverPinBehavior: .autoClose
         )
@@ -145,5 +149,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             // Keep UI responsive; backend failures are handled by service tests.
         }
+    }
+
+    private func handlePopoverVisibilityChanged(_ isShown: Bool) {
+        let interval = isShown ? detailPopoverRefreshInterval : backgroundRefreshInterval
+        settingsState.refreshInterval = interval
+        statsStore?.updateRefreshInterval(interval)
     }
 }

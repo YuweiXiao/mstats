@@ -267,6 +267,27 @@ final class StatsStoreTests: XCTestCase {
         XCTAssertEqual(finalCount, 1)
     }
 
+    @MainActor
+    func testUpdateRefreshIntervalTakesEffectWhilePolling() async {
+        let collector = CountingStatsCollector()
+        let store = StatsStore(collector: collector, refreshInterval: 1)
+
+        store.startPolling()
+        let reachedInitialCollect = await eventually(timeoutNanoseconds: 500_000_000) {
+            await collector.readCallCount() >= 1
+        }
+        XCTAssertTrue(reachedInitialCollect)
+        let countBeforeUpdate = await collector.readCallCount()
+
+        store.updateRefreshInterval(0.05)
+        let reachedFasterCadence = await eventually(timeoutNanoseconds: 600_000_000) {
+            await collector.readCallCount() >= countBeforeUpdate + 2
+        }
+        store.stopPolling()
+
+        XCTAssertTrue(reachedFasterCadence)
+    }
+
     private func makeSnapshot(cpu: Double) -> StatsSnapshot {
         StatsSnapshot(
             timestamp: Date(timeIntervalSince1970: 1_706_000_000),

@@ -32,7 +32,7 @@ public struct SettingsState: Equatable {
             .diskUsage
         ],
         showSecondaryMetric: true,
-        refreshInterval: 5,
+        refreshInterval: 3,
         launchAtLoginEnabled: false,
         popoverPinBehavior: .autoClose
     )

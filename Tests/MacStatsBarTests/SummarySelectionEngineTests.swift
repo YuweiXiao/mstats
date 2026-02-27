@@ -252,6 +252,28 @@ final class StatusBarControllerSummaryTests: XCTestCase {
         XCTAssertFalse(popover.fakeShown)
     }
 
+    func testPopoverVisibilityCallbackReceivesShowAndCloseEvents() {
+        _ = NSApplication.shared
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        defer { NSStatusBar.system.removeStatusItem(statusItem) }
+
+        let popover = TestPopover()
+        let appNotifications = NotificationCenter()
+        var visibilityEvents: [Bool] = []
+        _ = StatusBarController(
+            statusItem: statusItem,
+            onPopoverVisibilityChanged: { visibilityEvents.append($0) },
+            popover: popover,
+            notificationCenter: appNotifications
+        )
+
+        statusItem.button?.performClick(nil)
+        XCTAssertEqual(visibilityEvents, [true])
+
+        appNotifications.post(name: NSApplication.didResignActiveNotification, object: nil)
+        XCTAssertEqual(visibilityEvents, [true, false])
+    }
+
     func testRenderSummaryUsesCustomMultilineViewForNetworkOnlyMetric() {
         _ = NSApplication.shared
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -366,11 +388,13 @@ private final class TestPopover: NSPopover {
     ) {
         showCallCount += 1
         fakeShown = true
+        delegate?.popoverDidShow?(Notification(name: NSPopover.didShowNotification, object: self))
     }
 
     override func performClose(_ sender: Any?) {
         closeCallCount += 1
         fakeShown = false
+        delegate?.popoverDidClose?(Notification(name: NSPopover.didCloseNotification, object: self))
     }
 }
 

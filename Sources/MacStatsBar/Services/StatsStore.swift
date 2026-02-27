@@ -9,7 +9,7 @@ public final class StatsStore: ObservableObject {
     private static let minimumRefreshInterval: TimeInterval = 0.05
 
     private let collector: any StatsCollecting
-    private let refreshInterval: TimeInterval
+    private var refreshInterval: TimeInterval
     private var pollingTask: Task<Void, Never>?
     private var pollingSessionID = UUID()
     private var isRefreshing = false
@@ -56,6 +56,19 @@ public final class StatsStore: ObservableObject {
         }
 
         isPolling = true
+        startNewPollingSession()
+    }
+
+    public func updateRefreshInterval(_ refreshInterval: TimeInterval) {
+        self.refreshInterval = refreshInterval
+        guard isPolling else {
+            return
+        }
+        startNewPollingSession()
+    }
+
+    private func startNewPollingSession() {
+        pollingTask?.cancel()
         let sessionID = UUID()
         pollingSessionID = sessionID
         pollingTask = Task { [weak self] in
