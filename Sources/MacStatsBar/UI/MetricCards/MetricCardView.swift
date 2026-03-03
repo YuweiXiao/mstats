@@ -38,18 +38,7 @@ enum MetricSparklineDataBuilder {
             return points
         }
 
-        if maxPointsPerSeries == 1 {
-            return [points[points.count - 1]]
-        }
-
-        let sourceLastIndex = points.count - 1
-        let targetLastIndex = maxPointsPerSeries - 1
-
-        return (0..<maxPointsPerSeries).map { compactedIndex in
-            let ratio = Double(compactedIndex) / Double(targetLastIndex)
-            let sourceIndex = Int((ratio * Double(sourceLastIndex)).rounded())
-            return points[sourceIndex]
-        }
+        return Array(points.suffix(maxPointsPerSeries))
     }
 
     private static func startIndex(pointsCount: Int, trailingSlotCount: Int?) -> Int {
@@ -154,7 +143,7 @@ private struct MetricSparklineView: View {
     let series: [PopoverTrendSeries]
     let accentColor: Color
     let style: MetricSparklineStyle
-    private static let maxBarPointsPerSeries = 60
+    private static let maxBarPointsPerSeries = 300
 
     private var points: [MetricSparklinePoint] {
         MetricSparklineDataBuilder.buildPoints(
@@ -216,7 +205,7 @@ private struct MetricSparklineView: View {
                     BarMark(
                         x: .value("Sample", point.sampleIndex),
                         y: .value("Value", point.value),
-                        width: .fixed(2)
+                        width: .fixed(1)
                     )
                     .position(by: .value("Series", point.seriesLabel))
                     .foregroundStyle(color(for: point.seriesLabel, using: seriesColors))

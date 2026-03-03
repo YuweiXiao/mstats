@@ -20,15 +20,29 @@ final class MetricSparklineDataBuilderTests: XCTestCase {
         XCTAssertEqual(MetricSparklineDataBuilder.buildPoints(from: []), [])
     }
 
-    func testBuildPointsCompactsPerSeriesAcrossFullRange() {
+    func testBuildPointsKeepsLatestSamplesWhenSeriesExceedsVisibleSlots() {
         let points = (0..<120).map(Double.init)
         let series = [PopoverTrendSeries(label: "Usage", points: points)]
 
         let built = MetricSparklineDataBuilder.buildPoints(from: series, maxPointsPerSeries: 60)
 
         XCTAssertEqual(built.count, 60)
-        XCTAssertEqual(built.first?.value, 0)
+        XCTAssertEqual(built.first?.value, 60)
         XCTAssertEqual(built.last?.value, 119)
+    }
+
+    func testBuildPointsShiftLeftByOneWhenNewSampleArrives() {
+        let previous = MetricSparklineDataBuilder.buildPoints(
+            from: [PopoverTrendSeries(label: "Usage", points: (0..<120).map(Double.init))],
+            maxPointsPerSeries: 60
+        )
+        let next = MetricSparklineDataBuilder.buildPoints(
+            from: [PopoverTrendSeries(label: "Usage", points: (0..<121).map(Double.init))],
+            maxPointsPerSeries: 60
+        )
+
+        XCTAssertEqual(previous.dropFirst().map(\.value), next.dropLast().map(\.value))
+        XCTAssertEqual(next.last?.value, 120)
     }
 
     func testBuildPointsRightAlignsWhenSeriesHasFewerPointsThanVisibleSlots() {

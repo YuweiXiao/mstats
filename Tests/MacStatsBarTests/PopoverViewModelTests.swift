@@ -67,6 +67,29 @@ final class PopoverViewModelTests: XCTestCase {
         XCTAssertEqual(networkCard.trendSeries[0].points, [1.2, 1.6])
         XCTAssertEqual(networkCard.trendSeries[1].points, [0.2, 0.4])
     }
+
+    func testBuildUsesOnlyLatestFiveMinutesOfHistoryForTrendSeries() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let snapshot = StatsSnapshot(
+            timestamp: now,
+            metrics: [
+                .cpuUsage: MetricValue(primaryValue: 30, secondaryValue: nil, unit: .percent)
+            ]
+        )
+
+        let history: [MetricKind: [MetricHistorySample]] = [
+            .cpuUsage: [
+                MetricHistorySample(timestamp: Date(timeIntervalSince1970: 600), primary: 10, secondary: nil),
+                MetricHistorySample(timestamp: Date(timeIntervalSince1970: 700), primary: 20, secondary: nil),
+                MetricHistorySample(timestamp: Date(timeIntervalSince1970: 1_000), primary: 30, secondary: nil)
+            ]
+        ]
+
+        let viewModel = PopoverViewModel(snapshot: snapshot, history: history)
+        let cpuCard = try XCTUnwrap(viewModel.cards.first(where: { $0.kind == .cpuUsage }))
+
+        XCTAssertEqual(cpuCard.trendSeries.first?.points, [20, 30])
+    }
     func testBuildUsesPlaceholderTextWhenSnapshotIsNil() {
         let viewModel = PopoverViewModel(snapshot: nil)
 

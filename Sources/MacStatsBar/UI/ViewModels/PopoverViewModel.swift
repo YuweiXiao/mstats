@@ -47,6 +47,7 @@ public struct PopoverViewModel: Equatable {
     public let topCPUProcesses: [PopoverTopCPUProcess]
     private static let processListMinimumCPUPercent = 1.0
     private static let processListMaximumCount = 10
+    private static let trendWindowSeconds: TimeInterval = 5 * 60
 
     private static let orderedKinds: [MetricKind] = [
         .cpuUsage,
@@ -159,7 +160,7 @@ public struct PopoverViewModel: Equatable {
         samples: [MetricHistorySample],
         keyPath: KeyPath<MetricHistorySample, Double?>
     ) -> [PopoverTrendSeries] {
-        let points = samples.compactMap { $0[keyPath: keyPath] }
+        let points = recentSamples(samples).compactMap { $0[keyPath: keyPath] }
         guard !points.isEmpty else {
             return []
         }
@@ -167,8 +168,9 @@ public struct PopoverViewModel: Equatable {
     }
 
     private static func dualTrendSeries(samples: [MetricHistorySample]) -> [PopoverTrendSeries] {
-        let downPoints = samples.compactMap(\.primary)
-        let upPoints = samples.compactMap(\.secondary)
+        let recent = recentSamples(samples)
+        let downPoints = recent.compactMap(\.primary)
+        let upPoints = recent.compactMap(\.secondary)
         var result: [PopoverTrendSeries] = []
 
         if !downPoints.isEmpty {
@@ -179,6 +181,15 @@ public struct PopoverViewModel: Equatable {
         }
 
         return result
+    }
+
+    private static func recentSamples(_ samples: [MetricHistorySample]) -> [MetricHistorySample] {
+        guard let latestTimestamp = samples.map(\.timestamp).max() else {
+            return []
+        }
+
+        let cutoff = latestTimestamp.addingTimeInterval(-trendWindowSeconds)
+        return samples.filter { $0.timestamp >= cutoff }
     }
 
     private static func cpuCardText(_ percent: Double?) -> String {
