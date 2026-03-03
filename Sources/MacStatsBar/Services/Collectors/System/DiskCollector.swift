@@ -5,7 +5,11 @@ public protocol DiskCollecting {
 }
 
 public struct DiskCollector: DiskCollecting {
-    typealias CapacitySnapshot = (totalCapacity: Int64, availableCapacity: Int64?)
+    typealias CapacitySnapshot = (
+        totalCapacity: Int64,
+        availableCapacityForImportantUsage: Int64?,
+        availableCapacity: Int64?
+    )
 
     private let volumeURL: URL
     private let capacityProvider: (URL) -> CapacitySnapshot?
@@ -32,7 +36,9 @@ public struct DiskCollector: DiskCollecting {
         }
 
         let totalCapacity = capacity.totalCapacity
-        let rawAvailable = capacity.availableCapacity ?? 0
+        let rawAvailable = capacity.availableCapacity
+            ?? capacity.availableCapacityForImportantUsage
+            ?? 0
         let clampedAvailable = min(max(rawAvailable, 0), totalCapacity)
         let usedCapacity = totalCapacity - clampedAvailable
 
@@ -57,9 +63,11 @@ public struct DiskCollector: DiskCollecting {
         do {
             let values = try volumeURL.resourceValues(forKeys: keys)
             guard let totalCapacity = values.volumeTotalCapacity, totalCapacity > 0 else { return nil }
-            let availableCapacity = values.volumeAvailableCapacityForImportantUsage
-                ?? Int64(values.volumeAvailableCapacity ?? 0)
-            return (totalCapacity: Int64(totalCapacity), availableCapacity: availableCapacity)
+            return (
+                totalCapacity: Int64(totalCapacity),
+                availableCapacityForImportantUsage: values.volumeAvailableCapacityForImportantUsage,
+                availableCapacity: values.volumeAvailableCapacity.map(Int64.init)
+            )
         } catch {
             return nil
         }

@@ -113,11 +113,23 @@ final class SystemCollectorMappingTests: XCTestCase {
 
         let negativeAvailableCollector = DiskCollector(
             volumeURL: URL(fileURLWithPath: "/"),
-            capacityProvider: { _ in (totalCapacity: gibibyte, availableCapacity: -512) }
+            capacityProvider: { _ in
+                (
+                    totalCapacity: gibibyte,
+                    availableCapacityForImportantUsage: -512,
+                    availableCapacity: nil
+                )
+            }
         )
         let overflowAvailableCollector = DiskCollector(
             volumeURL: URL(fileURLWithPath: "/"),
-            capacityProvider: { _ in (totalCapacity: gibibyte, availableCapacity: gibibyte * 2) }
+            capacityProvider: { _ in
+                (
+                    totalCapacity: gibibyte,
+                    availableCapacityForImportantUsage: gibibyte * 2,
+                    availableCapacity: nil
+                )
+            }
         )
 
         let usedWithNegativeAvailable = negativeAvailableCollector.collectDiskUsage()
@@ -127,6 +139,25 @@ final class SystemCollectorMappingTests: XCTestCase {
         XCTAssertEqual(usedWithNegativeAvailable?.secondaryValue ?? .nan, 1, accuracy: 0.0001)
         XCTAssertEqual(usedWithOverflowAvailable?.primaryValue ?? .nan, 0, accuracy: 0.0001)
         XCTAssertEqual(usedWithOverflowAvailable?.secondaryValue ?? .nan, 1, accuracy: 0.0001)
+    }
+
+    func testDiskCollectorFallsBackToRegularAvailableCapacityWhenImportantUsageIsZero() {
+        let gibibyte = Int64(1_073_741_824)
+        let collector = DiskCollector(
+            volumeURL: URL(fileURLWithPath: "/"),
+            capacityProvider: { _ in
+                (
+                    totalCapacity: gibibyte,
+                    availableCapacityForImportantUsage: 0,
+                    availableCapacity: gibibyte / 2
+                )
+            }
+        )
+
+        let metric = collector.collectDiskUsage()
+
+        XCTAssertEqual(metric?.primaryValue ?? .nan, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(metric?.secondaryValue ?? .nan, 1, accuracy: 0.0001)
     }
 }
 
