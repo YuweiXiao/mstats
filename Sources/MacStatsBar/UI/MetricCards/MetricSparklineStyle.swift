@@ -2,12 +2,18 @@ import Foundation
 import CoreGraphics
 
 struct MetricSparklineStyle: Equatable {
+    enum MarkType: Equatable {
+        case line
+        case bar
+    }
+
     enum Interpolation: Equatable {
         case catmullRom
         case monotone
         case linear
     }
 
+    let markType: MarkType
     let interpolation: Interpolation
     let plotHeight: CGFloat
     let yDomain: ClosedRange<Double>?
@@ -16,6 +22,7 @@ struct MetricSparklineStyle: Equatable {
     let showsAreaFill: Bool
 
     static let defaultCard = MetricSparklineStyle(
+        markType: .bar,
         interpolation: .catmullRom,
         plotHeight: 34,
         yDomain: nil,
@@ -25,6 +32,7 @@ struct MetricSparklineStyle: Equatable {
     )
 
     static let cpuCard = MetricSparklineStyle(
+        markType: .bar,
         interpolation: .monotone,
         plotHeight: 44,
         yDomain: 0...100,

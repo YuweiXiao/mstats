@@ -10,7 +10,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables: Set<AnyCancellable> = []
     private var workspaceNotificationObservers: [NSObjectProtocol] = []
     private var settingsState = SettingsState.defaultValue
-    private var metricHistoryStore = MetricHistoryStore(maxSamples: 60)
+    private var metricHistoryStore = MetricHistoryStore()
 
     private let backgroundRefreshInterval: TimeInterval = 3
     private let detailPopoverRefreshInterval: TimeInterval = 1

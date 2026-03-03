@@ -8,12 +8,58 @@ struct MetricSparklinePoint: Equatable {
 }
 
 enum MetricSparklineDataBuilder {
-    static func buildPoints(from series: [PopoverTrendSeries]) -> [MetricSparklinePoint] {
+    static func buildPoints(
+        from series: [PopoverTrendSeries],
+        maxPointsPerSeries: Int? = nil,
+        trailingSlotCount: Int? = nil
+    ) -> [MetricSparklinePoint] {
         series.flatMap { trend in
-            trend.points.enumerated().map { index, value in
-                MetricSparklinePoint(seriesLabel: trend.label, sampleIndex: index, value: value)
+            let points = compactedPoints(for: trend.points, maxPointsPerSeries: maxPointsPerSeries)
+            let startIndex = startIndex(
+                pointsCount: points.count,
+                trailingSlotCount: trailingSlotCount
+            )
+            return points.enumerated().map { index, value in
+                MetricSparklinePoint(
+                    seriesLabel: trend.label,
+                    sampleIndex: startIndex + index,
+                    value: value
+                )
             }
         }
+    }
+
+    private static func compactedPoints(for points: [Double], maxPointsPerSeries: Int?) -> [Double] {
+        guard
+            let maxPointsPerSeries,
+            maxPointsPerSeries > 0,
+            points.count > maxPointsPerSeries
+        else {
+            return points
+        }
+
+        if maxPointsPerSeries == 1 {
+            return [points[points.count - 1]]
+        }
+
+        let sourceLastIndex = points.count - 1
+        let targetLastIndex = maxPointsPerSeries - 1
+
+        return (0..<maxPointsPerSeries).map { compactedIndex in
+            let ratio = Double(compactedIndex) / Double(targetLastIndex)
+            let sourceIndex = Int((ratio * Double(sourceLastIndex)).rounded())
+            return points[sourceIndex]
+        }
+    }
+
+    private static func startIndex(pointsCount: Int, trailingSlotCount: Int?) -> Int {
+        guard
+            let trailingSlotCount,
+            trailingSlotCount > pointsCount
+        else {
+            return 0
+        }
+        return trailingSlotCount - pointsCount
     }
 }
 
@@ -108,9 +154,14 @@ private struct MetricSparklineView: View {
     let series: [PopoverTrendSeries]
     let accentColor: Color
     let style: MetricSparklineStyle
+    private static let maxBarPointsPerSeries = 60
 
     private var points: [MetricSparklinePoint] {
-        MetricSparklineDataBuilder.buildPoints(from: series)
+        MetricSparklineDataBuilder.buildPoints(
+            from: series,
+            maxPointsPerSeries: style.markType == .bar ? Self.maxBarPointsPerSeries : nil,
+            trailingSlotCount: style.markType == .bar ? Self.maxBarPointsPerSeries : nil
+        )
     }
 
     var body: some View {
@@ -119,11 +170,22 @@ private struct MetricSparklineView: View {
 
     @ViewBuilder
     private var chartContent: some View {
-        if let yDomain = style.yDomain {
-            baseChart
-                .chartYScale(domain: yDomain)
+        if style.markType == .bar {
+            if let yDomain = style.yDomain {
+                baseChart
+                    .chartXScale(domain: 0...(Self.maxBarPointsPerSeries - 1))
+                    .chartYScale(domain: yDomain)
+            } else {
+                baseChart
+                    .chartXScale(domain: 0...(Self.maxBarPointsPerSeries - 1))
+            }
         } else {
-            baseChart
+            if let yDomain = style.yDomain {
+                baseChart
+                    .chartYScale(domain: yDomain)
+            } else {
+                baseChart
+            }
         }
     }
 
@@ -137,7 +199,7 @@ private struct MetricSparklineView: View {
                     .lineStyle(StrokeStyle(lineWidth: 0.6))
             }
 
-            if style.showsAreaFill {
+            if style.markType == .line && style.showsAreaFill {
                 ForEach(Array(points.enumerated()), id: \.offset) { _, point in
                     AreaMark(
                         x: .value("Sample", point.sampleIndex),
@@ -150,23 +212,33 @@ private struct MetricSparklineView: View {
             }
 
             ForEach(Array(points.enumerated()), id: \.offset) { _, point in
-                if style.showsAreaFill {
-                    LineMark(
+                if style.markType == .bar {
+                    BarMark(
                         x: .value("Sample", point.sampleIndex),
                         y: .value("Value", point.value),
-                        series: .value("Series", point.seriesLabel)
+                        width: .fixed(2)
                     )
-                    .interpolationMethod(chartInterpolationMethod)
-                    .lineStyle(StrokeStyle(lineWidth: 1.6))
+                    .position(by: .value("Series", point.seriesLabel))
                     .foregroundStyle(color(for: point.seriesLabel, using: seriesColors))
                 } else {
-                    LineMark(
-                        x: .value("Sample", point.sampleIndex),
-                        y: .value("Value", point.value),
-                        series: .value("Series", point.seriesLabel)
-                    )
-                    .interpolationMethod(chartInterpolationMethod)
-                    .foregroundStyle(color(for: point.seriesLabel, using: seriesColors))
+                    if style.showsAreaFill {
+                        LineMark(
+                            x: .value("Sample", point.sampleIndex),
+                            y: .value("Value", point.value),
+                            series: .value("Series", point.seriesLabel)
+                        )
+                        .interpolationMethod(chartInterpolationMethod)
+                        .lineStyle(StrokeStyle(lineWidth: 1.6))
+                        .foregroundStyle(color(for: point.seriesLabel, using: seriesColors))
+                    } else {
+                        LineMark(
+                            x: .value("Sample", point.sampleIndex),
+                            y: .value("Value", point.value),
+                            series: .value("Series", point.seriesLabel)
+                        )
+                        .interpolationMethod(chartInterpolationMethod)
+                        .foregroundStyle(color(for: point.seriesLabel, using: seriesColors))
+                    }
                 }
             }
         }

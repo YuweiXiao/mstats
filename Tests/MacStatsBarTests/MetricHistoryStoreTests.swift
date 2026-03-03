@@ -3,6 +3,27 @@ import XCTest
 @testable import MacStatsBar
 
 final class MetricHistoryStoreTests: XCTestCase {
+    func testAppendSnapshotKeepsOnlySamplesWithinFifteenMinuteWindow() {
+        var store = MetricHistoryStore(maxSamples: 1_000)
+
+        store.append(snapshot: StatsSnapshot(
+            timestamp: Date(timeIntervalSince1970: 0),
+            metrics: [.cpuUsage: MetricValue(primaryValue: 10, secondaryValue: nil, unit: .percent)]
+        ))
+        store.append(snapshot: StatsSnapshot(
+            timestamp: Date(timeIntervalSince1970: 600),
+            metrics: [.cpuUsage: MetricValue(primaryValue: 20, secondaryValue: nil, unit: .percent)]
+        ))
+        store.append(snapshot: StatsSnapshot(
+            timestamp: Date(timeIntervalSince1970: 901),
+            metrics: [.cpuUsage: MetricValue(primaryValue: 30, secondaryValue: nil, unit: .percent)]
+        ))
+
+        let cpuSamples = store.history[.cpuUsage]
+        XCTAssertEqual(cpuSamples?.count, 2)
+        XCTAssertEqual(cpuSamples?.map(\.primary), [20, 30])
+    }
+
     func testAppendSnapshotKeepsOnlyLatestSamplesWithinCapacity() {
         var store = MetricHistoryStore(maxSamples: 2)
 

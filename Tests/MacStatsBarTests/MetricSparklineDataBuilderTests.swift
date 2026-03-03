@@ -20,6 +20,31 @@ final class MetricSparklineDataBuilderTests: XCTestCase {
         XCTAssertEqual(MetricSparklineDataBuilder.buildPoints(from: []), [])
     }
 
+    func testBuildPointsCompactsPerSeriesAcrossFullRange() {
+        let points = (0..<120).map(Double.init)
+        let series = [PopoverTrendSeries(label: "Usage", points: points)]
+
+        let built = MetricSparklineDataBuilder.buildPoints(from: series, maxPointsPerSeries: 60)
+
+        XCTAssertEqual(built.count, 60)
+        XCTAssertEqual(built.first?.value, 0)
+        XCTAssertEqual(built.last?.value, 119)
+    }
+
+    func testBuildPointsRightAlignsWhenSeriesHasFewerPointsThanVisibleSlots() {
+        let series = [PopoverTrendSeries(label: "Usage", points: [10, 20, 30])]
+
+        let built = MetricSparklineDataBuilder.buildPoints(
+            from: series,
+            maxPointsPerSeries: 60,
+            trailingSlotCount: 60
+        )
+
+        XCTAssertEqual(built.count, 3)
+        XCTAssertEqual(built.map(\.sampleIndex), [57, 58, 59])
+        XCTAssertEqual(built.map(\.value), [10, 20, 30])
+    }
+
     func testSparklineStyleForCPUUsesFixedPercentDomainAndReferenceLines() {
         let style = MetricSparklineStyle.forMetric(.cpuUsage)
 
@@ -45,6 +70,12 @@ final class MetricSparklineDataBuilderTests: XCTestCase {
 
         XCTAssertTrue(cpuStyle.showsAreaFill)
         XCTAssertFalse(MetricSparklineStyle.defaultCard.showsAreaFill)
+    }
+
+    func testSparklineStyleUsesBarMarksForAllMetrics() {
+        for kind in MetricKind.allCases {
+            XCTAssertEqual(MetricSparklineStyle.forMetric(kind).markType, .bar)
+        }
     }
 
     func testSparklineStyleForNonCPUMetricsKeepsDefaultValues() {
