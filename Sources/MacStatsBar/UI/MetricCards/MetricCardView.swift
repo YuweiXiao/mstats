@@ -7,6 +7,15 @@ struct MetricSparklinePoint: Equatable {
     let value: Double
 }
 
+enum MetricCardLayoutRules {
+    static func shouldUseFlexibleTrendHeight(
+        fixedCardHeight: CGFloat?,
+        hasTrendSeries: Bool
+    ) -> Bool {
+        fixedCardHeight != nil && hasTrendSeries
+    }
+}
+
 enum MetricSparklineDataBuilder {
     static func buildPoints(
         from series: [PopoverTrendSeries],
@@ -84,16 +93,14 @@ public struct MetricCardView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             headerView
-            if fixedCardHeight != nil, !card.trendSeries.isEmpty {
-                Spacer(minLength: 0)
-            }
             if !card.trendSeries.isEmpty {
                 MetricSparklineView(
                     series: card.trendSeries,
                     accentColor: accentColor,
                     style: sparklineStyle
                 )
-                    .frame(height: sparklineHeight)
+                    .frame(maxHeight: shouldUseFlexibleTrendHeight ? .infinity : nil, alignment: .bottom)
+                    .frame(height: shouldUseFlexibleTrendHeight ? nil : sparklineHeight)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -137,6 +144,13 @@ public struct MetricCardView: View {
             }
         }
     }
+
+    private var shouldUseFlexibleTrendHeight: Bool {
+        MetricCardLayoutRules.shouldUseFlexibleTrendHeight(
+            fixedCardHeight: fixedCardHeight,
+            hasTrendSeries: !card.trendSeries.isEmpty
+        )
+    }
 }
 
 private struct MetricSparklineView: View {
@@ -155,6 +169,7 @@ private struct MetricSparklineView: View {
 
     var body: some View {
         chartContent
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
     }
 
     @ViewBuilder
