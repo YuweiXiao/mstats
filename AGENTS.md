@@ -31,6 +31,7 @@ Regenerates `MacStatsBar.xcodeproj` from `project.yml` for App Store workflow.
 - Add or update tests for every behavior change (formatter output, status-bar rendering, settings behavior).
 - Test naming pattern: `test<Behavior>`.
 - Before commit/PR, run full suite and ensure zero failures.
+- After major code/UI changes, always run `./scripts/build_app_bundle.sh` to verify bundle creation.
 - For UI-visible changes, include a deterministic assertion in tests when possible.
 
 ## Commit & Pull Request Guidelines
