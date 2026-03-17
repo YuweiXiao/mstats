@@ -61,7 +61,9 @@ public struct DiskCollector: DiskCollecting {
         ]
 
         do {
-            let values = try volumeURL.resourceValues(forKeys: keys)
+            var url = volumeURL
+            url.removeAllCachedResourceValues()
+            let values = try url.resourceValues(forKeys: keys)
             guard let totalCapacity = values.volumeTotalCapacity, totalCapacity > 0 else { return nil }
             return (
                 totalCapacity: Int64(totalCapacity),
