@@ -92,11 +92,11 @@ final class MetricSparklineDataBuilderTests: XCTestCase {
         }
     }
 
-    func testSparklineStyleForNonCPUMetricsKeepsDefaultValues() {
-        let nonCPUKinds = MetricKind.allCases.filter { $0 != .cpuUsage }
-
-        for kind in nonCPUKinds {
+    func testSparklineStyleForNonCPUMetricsKeepsExpectedValues() {
+        let defaultKinds: [MetricKind] = [.memoryUsage, .networkThroughput, .diskUsage]
+        for kind in defaultKinds {
             XCTAssertEqual(MetricSparklineStyle.forMetric(kind), .defaultCard, "Expected default style for \(kind)")
         }
+        XCTAssertEqual(MetricSparklineStyle.forMetric(.batteryStatus), .batteryCard)
     }
 }

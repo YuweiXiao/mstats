@@ -15,14 +15,16 @@ public struct PopoverMetricCard: Identifiable, Equatable {
     public let title: String
     public let text: String
     public let trendSeries: [PopoverTrendSeries]
+    public let yDomainMax: Double?
 
     public var id: MetricKind { kind }
 
-    public init(kind: MetricKind, title: String, text: String, trendSeries: [PopoverTrendSeries] = []) {
+    public init(kind: MetricKind, title: String, text: String, trendSeries: [PopoverTrendSeries] = [], yDomainMax: Double? = nil) {
         self.kind = kind
         self.title = title
         self.text = text
         self.trendSeries = trendSeries
+        self.yDomainMax = yDomainMax
     }
 }
 
@@ -102,7 +104,8 @@ public struct PopoverViewModel: Equatable {
                     label: "Used",
                     samples: history,
                     keyPath: \.primary
-                )
+                ),
+                yDomainMax: metric?.secondaryValue
             )
         case .networkThroughput:
             return PopoverMetricCard(
@@ -143,7 +146,8 @@ public struct PopoverViewModel: Equatable {
                     label: "Used",
                     samples: history,
                     keyPath: \.primary
-                )
+                ),
+                yDomainMax: metric?.secondaryValue
             )
         }
     }

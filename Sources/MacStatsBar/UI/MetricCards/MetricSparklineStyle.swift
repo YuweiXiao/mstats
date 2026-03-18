@@ -41,11 +41,23 @@ struct MetricSparklineStyle: Equatable {
         showsAreaFill: true
     )
 
+    static let batteryCard = MetricSparklineStyle(
+        markType: .bar,
+        interpolation: .catmullRom,
+        plotHeight: 34,
+        yDomain: 0...100,
+        showsReferenceLines: true,
+        referenceLineValues: [0, 50, 100],
+        showsAreaFill: false
+    )
+
     static func forMetric(_ kind: MetricKind) -> MetricSparklineStyle {
         switch kind {
         case .cpuUsage:
             return .cpuCard
-        case .memoryUsage, .networkThroughput, .batteryStatus, .diskUsage:
+        case .batteryStatus:
+            return .batteryCard
+        case .memoryUsage, .networkThroughput, .diskUsage:
             return .defaultCard
         }
     }

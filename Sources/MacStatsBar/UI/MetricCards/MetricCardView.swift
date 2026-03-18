@@ -81,7 +81,18 @@ public struct MetricCardView: View {
         headerLayout: HeaderLayout = .stacked,
         fixedCardHeight: CGFloat? = nil
     ) {
-        let sparklineStyle = MetricSparklineStyle.forMetric(card.kind)
+        var sparklineStyle = MetricSparklineStyle.forMetric(card.kind)
+        if sparklineStyle.yDomain == nil, let maxY = card.yDomainMax, maxY > 0 {
+            sparklineStyle = MetricSparklineStyle(
+                markType: sparklineStyle.markType,
+                interpolation: sparklineStyle.interpolation,
+                plotHeight: sparklineStyle.plotHeight,
+                yDomain: 0...maxY,
+                showsReferenceLines: sparklineStyle.showsReferenceLines,
+                referenceLineValues: sparklineStyle.referenceLineValues,
+                showsAreaFill: sparklineStyle.showsAreaFill
+            )
+        }
         self.card = card
         self.accentColor = accentColor
         self.sparklineStyle = sparklineStyle
@@ -157,7 +168,7 @@ private struct MetricSparklineView: View {
     let series: [PopoverTrendSeries]
     let accentColor: Color
     let style: MetricSparklineStyle
-    private static let maxBarPointsPerSeries = 300
+    private static let maxBarPointsPerSeries = 100
 
     private var points: [MetricSparklinePoint] {
         MetricSparklineDataBuilder.buildPoints(
@@ -199,7 +210,7 @@ private struct MetricSparklineView: View {
         return Chart {
             ForEach(referenceLineValues, id: \.self) { value in
                 RuleMark(y: .value("Reference", value))
-                    .foregroundStyle(accentColor.opacity(value == 50 ? 0.16 : 0.10))
+                    .foregroundStyle(accentColor.opacity(value == 50 ? 0.30 : 0.20))
                     .lineStyle(StrokeStyle(lineWidth: 0.6))
             }
 
@@ -211,7 +222,7 @@ private struct MetricSparklineView: View {
                         series: .value("Series", point.seriesLabel)
                     )
                     .interpolationMethod(chartInterpolationMethod)
-                    .foregroundStyle(color(for: point.seriesLabel, using: seriesColors).opacity(0.10))
+                    .foregroundStyle(color(for: point.seriesLabel, using: seriesColors).opacity(0.20))
                 }
             }
 
@@ -281,12 +292,20 @@ private struct MetricSparklineView: View {
         seriesColors[label] ?? accentColor
     }
 
+    private static let secondarySeriesColors: [Color] = [.purple, .pink, .indigo]
+
     private func buildSeriesColors() -> [String: Color] {
         var colors: [String: Color] = [:]
         colors.reserveCapacity(series.count)
+        var secondaryIndex = 0
         for (index, trend) in series.enumerated() {
             if colors[trend.label] == nil {
-                colors[trend.label] = index == 0 ? accentColor : accentColor.opacity(0.6)
+                if index == 0 {
+                    colors[trend.label] = accentColor
+                } else {
+                    colors[trend.label] = Self.secondarySeriesColors[secondaryIndex % Self.secondarySeriesColors.count]
+                    secondaryIndex += 1
+                }
             }
         }
         return colors
