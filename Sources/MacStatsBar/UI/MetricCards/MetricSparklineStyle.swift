@@ -24,7 +24,7 @@ struct MetricSparklineStyle: Equatable {
     static let defaultCard = MetricSparklineStyle(
         markType: .bar,
         interpolation: .catmullRom,
-        plotHeight: 34,
+        plotHeight: 44,
         yDomain: nil,
         showsReferenceLines: false,
         referenceLineValues: [],
@@ -44,7 +44,7 @@ struct MetricSparklineStyle: Equatable {
     static let batteryCard = MetricSparklineStyle(
         markType: .bar,
         interpolation: .catmullRom,
-        plotHeight: 34,
+        plotHeight: 44,
         yDomain: 0...100,
         showsReferenceLines: true,
         referenceLineValues: [0, 50, 100],

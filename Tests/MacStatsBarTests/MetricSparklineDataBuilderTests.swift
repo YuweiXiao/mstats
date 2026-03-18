@@ -66,11 +66,11 @@ final class MetricSparklineDataBuilderTests: XCTestCase {
         XCTAssertTrue(style.showsReferenceLines)
     }
 
-    func testSparklineStyleForCPUUsesNonOvershootingInterpolationAndTallerPlotHeight() {
+    func testSparklineStyleForCPUUsesNonOvershootingInterpolationAndMatchingPlotHeight() {
         let style = MetricSparklineStyle.forMetric(.cpuUsage)
 
         XCTAssertEqual(style.interpolation, .monotone)
-        XCTAssertGreaterThan(style.plotHeight, MetricSparklineStyle.defaultCard.plotHeight)
+        XCTAssertGreaterThanOrEqual(style.plotHeight, MetricSparklineStyle.defaultCard.plotHeight)
     }
 
     func testSparklineStyleForCPUUsesExactPercentReferenceAnchors() {

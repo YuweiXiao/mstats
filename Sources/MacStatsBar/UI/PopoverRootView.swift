@@ -32,6 +32,7 @@ public struct PopoverRootView: View {
             Button("Quit mstats") {
                 onExitRequested()
             }
+            .foregroundStyle(.red)
             .keyboardShortcut("q")
         }
         .padding(12)

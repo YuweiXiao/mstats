@@ -41,7 +41,7 @@ public struct CPUCompositeCardView: View {
                 HStack(spacing: 6) {
                     Text(process.name)
                         .lineLimit(1)
-                        .truncationMode(.middle)
+                        .truncationMode(.tail)
                     Spacer(minLength: 4)
                     Text(Self.formatCPUPercent(process.cpuUsagePercent))
                         .font(.caption2.monospacedDigit())
@@ -64,11 +64,11 @@ public struct CPUCompositeCardView: View {
         .clipped()
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.red.opacity(0.08))
+                .fill(Color.red.opacity(0.12))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.red.opacity(0.16), lineWidth: 1)
+                .stroke(Color.red.opacity(0.25), lineWidth: 1)
         )
     }
 
